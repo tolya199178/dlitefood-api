@@ -10,7 +10,6 @@ var models          = require('../../models'),
 exports.create = function(req, res) {
   var newOrder = req.body;
 
-  console.log(newOrder.acceptance_time);
   if (!newOrder.customer_id ||
       !newOrder.merchant_id ||
       !newOrder.merchant_type ||
@@ -27,7 +26,7 @@ exports.create = function(req, res) {
     return res.json(400, {success: false, msg: 'Please ensure to pass the required parameters to api!'});
   }
 
-  // create merchant with user info
+  // create a new order
   models.Orders.create(newOrder).then(function(order){
     if (!order) res.json(400, {success: false, msg: 'Unknow issue !!'});
 
