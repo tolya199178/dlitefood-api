@@ -69,6 +69,6 @@ oldDB
 .catch(function(exception) {
   throw new Error({
     exception: exception,
-    msg: 'Exception from excecuting sequelize !'
+    msg: 'Exception from executing sequelize !'
   });
 });

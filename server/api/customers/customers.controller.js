@@ -23,7 +23,6 @@ var CUSTOMER_STATUS = {
 exports.index = function(req, res) {
 
   try {
-    console.log('inside index');
     models.Customers.findAll({
       include: [
         {
@@ -71,7 +70,7 @@ exports.create = function (req, res, next) {
       console.log(newCustomer);
       return res.json(400, {success: false, msg: 'Please pass in required fields to create a customer.'});
     }
-    
+
     // Lets create a user-account first
     models.Users.createUser({
       email: newCustomer.email,
