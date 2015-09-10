@@ -26,11 +26,6 @@ var LIST_RESTAURANT_ATTRIBUTES = [
         "food"
       ]
 
-var validationError = function (res, err) {
-  return res.json(422, err);
-};
-
-
 /**
  * Search restaurant by postcode
  * restriction: 'no'
@@ -54,26 +49,28 @@ exports.search = function (req, res) {
 
       // return when can't find any relevant postcode
       if (postcodes.error || postcodes.data.length <= 1){
-        return res.envelope('Can\'t find the postcode ');
+        return res.json(400, {success: false, mgs: 'Can\'t find the postcode '});
       }
 
       // remove the csv header info
       postcodes = postcodes.data;
       postcodes.splice(0, 1);
+
       try {
         models.Merchants.findAll({
           include: [{ model: models.Locations} ]
         }).then(function(restaurants) {
           var inRangeRestaurants = filterRestaurantsByPostcode(restaurants, postcodes, req.query.milesRadius);
+
           if(inRangeRestaurants.length === 0 || typeof inRangeRestaurants == 'undefined') {
             return res.json(400, {success: false, msg: 'No merchant within reach' });
           }
-          console.log(inRangeRestaurants);
-          return res.envelope(inRangeRestaurants);
+
+          return res.json(200, {sucess: true, data: inRangeRestaurants});
         });
       }
       catch (exception){
-        return res.envelope(exception);
+        handlerException (res, exception);
       }
 
     });
@@ -123,4 +120,10 @@ var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_dista
   });
 
   return result;
+}
+
+
+
+function handlerException (res, ex){
+  res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});
 }

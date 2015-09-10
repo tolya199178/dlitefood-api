@@ -68,6 +68,7 @@ module.exports = function(sequelize, DataTypes) {
       associate: function(models) {
         // associations can be defined here
         Merchants.belongsTo(models.Users, {foreignKey: 'user_id'});
+        Merchants.hasMany(models.Locations, {foreignKey: 'location_menu_id'});
       }
     }
   });
