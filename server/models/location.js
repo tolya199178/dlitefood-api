@@ -27,7 +27,7 @@ module.exports = function(sequelize, DataTypes) {
     classMethods: {
       associate: function(models) {
         // associations can be defined here
-        Locations.belongsTo(models.Merchants, {foreignKey: 'location_menu_id', targetKey: 'id'});
+        // Locations.belongsTo(models.Merchants, {foreignKey: 'location_menu_id', targetKey: 'id'});
       }
     }
   });
