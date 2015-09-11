@@ -18,22 +18,22 @@ exports.create = function(req, res) {
   var newOrder = req.body;
 
   if (!newOrder.customer_id ||
-      !newOrder.merchant_id ||
-      !newOrder.orderPrice ||
+    !newOrder.merchant_id ||
+    !newOrder.orderPrice ||
       // !newOrder.merchant_type || -> can get it in merchant info, should remove this colum
-      !newOrder.delivery_type ||
+    !newOrder.delivery_type ||
       // !newOrder.transaction_id || --> this one will be generated
-      !newOrder.transaction_details ||
-      !newOrder.payment_type ||
-      !newOrder.details ||
-      !newOrder.note ||
-      !newOrder.status ||
-      !newOrder.acceptance_time
-      ){
+    !newOrder.transaction_details ||
+    !newOrder.payment_type ||
+    !newOrder.details ||
+    !newOrder.note ||
+    !newOrder.status ||
+    !newOrder.acceptance_time
+  ){
     return utils.handlerUserInputException(res);
   }
 
-  // get the merchant info and 
+  // get the merchant info and
   models.Merchants
     .findOne({
       where: {
@@ -54,16 +54,16 @@ exports.create = function(req, res) {
 
       newOrder.transaction_id = utils.generateTransactionId(ip);
       newOrder.status = ORDER_STATUS.PENDING;
-      
+
       // create a new order
       models.Orders.create(newOrder).then(function(order, error){
         if (!order) utils.handlerServerException(res, error);
 
         utils.handleSuccess(res, order);
       })
-      .catch(function(exception){
-        handlerException (res, exception);
-      });
+        .catch(function(exception){
+          handlerException (res, exception);
+        });
 
     })
     .catch(function(ex){
@@ -73,11 +73,11 @@ exports.create = function(req, res) {
 };
 
 /*
-  calculate total payment base on orderPrice and charges of merchant_type
-  @param {orderPrice} original price of order
-  @param {changes} additional charge of merchant_type
-  @result {}
-*/
+ calculate total payment base on orderPrice and charges of merchant_type
+ @param {orderPrice} original price of order
+ @param {changes} additional charge of merchant_type
+ @result {}
+ */
 function calculateTotalPayment(orderPrice, charges){
 
   // no addition fee
@@ -124,7 +124,7 @@ exports.index = function(req, res) {
   req.query.limitTo = req.query.limitTo || 20;
 
   models.Orders.findAll({
-   where: {'status': req.query.orderStatus},
+    where: {'status': req.query.orderStatus},
     limit: req.query.limitTo,
     order: 'updatedAt DESC'
   }).then( function (orders, error) {
@@ -179,62 +179,62 @@ exports.calculateOrderStartStopPosition = function (req, res) {
   }
   try {
     models.Orders
-    .findOne({
-      where: {
-        order_id: req.query.order,
-        order_status: ORDER_STATUS.PENDING
-      }
-    })
-    .then(function(order){
-      if (!order){
-        return res.json(404, {sucess: false, msg: 'Can\'t find the order with input id'});
-      };
+      .findOne({
+        where: {
+          order_id: req.query.order,
+          order_status: ORDER_STATUS.PENDING
+        }
+      })
+      .then(function(order){
+        if (!order){
+          return res.json(404, {sucess: false, msg: 'Can\'t find the order with input id'});
+        };
 
-      var loData = utils.extractLocationData(order.orderPostcode),
-          orderEasting = loData['E'],
-          orderNorthing = loData['N'],
-          nearestDriver = {},
-          nearestDistance = 999999,
-          latLon = utils.ENToLatLon(orderEasting, orderNorthing);
+        var loData = utils.extractLocationData(order.orderPostcode),
+            orderEasting = loData['E'],
+            orderNorthing = loData['N'],
+            nearestDriver = {},
+            nearestDistance = 999999,
+            latLon = utils.ENToLatLon(orderEasting, orderNorthing);
 
-      // get nearest driver base on order location
-      models.Staffs.findAll({}).then(function(staffs){
-        _.each(staffs, function(staff){
-          var   maximumDistance = parseFloat(staff.staff_max_distence);
+        // get nearest driver base on order location
+        models.Staffs.findAll({}).then(function(staffs){
+          _.each(staffs, function(staff){
+            var   maximumDistance = parseFloat(staff.staff_max_distence);
 
-          // can't find the real staff location
-          // we will use staff_postcode to find
-          if (!staff.staff_location){
-            loData = utils.extractLocationData(staff.staff_postcode);
-            var   postcodeEasting = loData['E'],
-                  postcodeNorthing = loData['N'];
-          }
-          else{
-            /*
-              If we can found latest staff location, need convert it
-            */
-            staff.staff_location = JSON.parse(staff.staff_location);
-            var   loData = utils.LLtoNE(staff.staff_location.lat, staff.staff_location.lon)
-            var   postcodeEasting = loData['E'],
-                  postcodeNorthing = loData['N'];
-            staff.latLon = loData;
-          }
+            // can't find the real staff location
+            // we will use staff_postcode to find
+            if (!staff.staff_location){
+              loData = utils.extractLocationData(staff.staff_postcode);
+              var   postcodeEasting = loData['E'],
+                    postcodeNorthing = loData['N'];
+            }
+            else{
+              /*
+               If we can found latest staff location, need convert it
+               */
+              staff.staff_location = JSON.parse(staff.staff_location);
+              var   loData = utils.LLtoNE(staff.staff_location.lat, staff.staff_location.lon)
+              var   postcodeEasting = loData['E'],
+                    postcodeNorthing = loData['N'];
+              staff.latLon = loData;
+            }
 
-          var distance = utils.calcDistanceByNE(orderNorthing, postcodeNorthing, orderEasting, postcodeEasting);
-          if (distance <= maximumDistance && distance <nearestDistance ){
-            nearestDriver = staff;
-            nearestDriver.latLon = staff.latLon || utils.ENToLatLon(postcodeEasting, postcodeNorthing);
-            nearestDistance = distance;
-          }
+            var distance = utils.calcDistanceByNE(orderNorthing, postcodeNorthing, orderEasting, postcodeEasting);
+            if (distance <= maximumDistance && distance <nearestDistance ){
+              nearestDriver = staff;
+              nearestDriver.latLon = staff.latLon || utils.ENToLatLon(postcodeEasting, postcodeNorthing);
+              nearestDistance = distance;
+            }
+          });
+
+          var result = _.pick(order, ['id', 'orderMerchantType', 'orderDeliveryType', 'orderPostcode', 'orderPhoneNo']);
+          result.latLon = latLon;
+          result.nearestDriver = _.pick(nearestDriver, ['staff_id', 'staff_name', 'staff_email', 'staff_postcode', 'staff_phoneno', 'latLon']);
+          return res.json(200, {success: true, data: result});
         });
 
-        var result = _.pick(order, ['id', 'orderMerchantType', 'orderDeliveryType', 'orderPostcode', 'orderPhoneNo']);
-        result.latLon = latLon;
-        result.nearestDriver = _.pick(nearestDriver, ['staff_id', 'staff_name', 'staff_email', 'staff_postcode', 'staff_phoneno', 'latLon']);
-        return res.json(200, {success: true, data: result});
       });
-
-    });
   }
   catch (exception){
     handlerException(res, exception);

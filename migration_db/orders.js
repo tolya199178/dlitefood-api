@@ -83,16 +83,16 @@ oldDB
           post_req.write(post_data);
           post_req.end();
         });
-       
+
       });
     })(item);
-    
+
   });
 })
 
 .catch(function(exception) {
   throw new Error({
     exception: exception,
-    msg: 'Exception from excecuting sequelize !'
+    msg: 'Exception from executing sequelize !'
   });
 });

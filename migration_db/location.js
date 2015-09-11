@@ -39,37 +39,37 @@ oldDB
     type: oldDB.QueryTypes.SELECT
   })
 
-.then(function(locations) {
-  _.each(locations, function(location){
-    (function(location){
-      newDB.query("select * from merchants where merchants.name = '" + location.type_name + "'", {
-        type: oldDB.QueryTypes.SELECT
-      }).then(function(merchant){
-        if (!merchant.length) return;
-        
-        post_data = {
-          merchant_id: merchant[0].id,
-          category_id: location.category_id,
-          location_meal: location.location_meal,
-          location_name: location.location_name,
-          location_price: location.location_price,
-          location_actual_price: location.location_actual_price,
-          location_in_stock: location.location_in_stock,
-          location_details: location.location_details,
-          location_sublocation_price: location.location_sublocation_price
-        };
+  .then(function(locations) {
+    _.each(locations, function(location){
+      (function(location){
+        newDB.query("select * from merchants where merchants.name = '" + location.type_name + "'", {
+          type: oldDB.QueryTypes.SELECT
+        }).then(function(merchant){
+          if (!merchant.length) return;
 
-        // user sequelize model to insert to db
+          post_data = {
+            merchant_id: merchant[0].id,
+            category_id: location.category_id,
+            location_meal: location.location_meal,
+            location_name: location.location_name,
+            location_price: location.location_price,
+            location_actual_price: location.location_actual_price,
+            location_in_stock: location.location_in_stock,
+            location_details: location.location_details,
+            location_sublocation_price: location.location_sublocation_price
+          };
 
-      });
-    })(location);
-    
+          // user sequelize model to insert to db
+
+        });
+      })(location);
+
+    });
+  })
+
+  .catch(function(exception) {
+    throw new Error({
+      exception: exception,
+      msg: 'Exception from excecuting sequelize !'
+    });
   });
-})
-
-.catch(function(exception) {
-  throw new Error({
-    exception: exception,
-    msg: 'Exception from excecuting sequelize !'
-  });
-});
