@@ -7,10 +7,6 @@ var models = require('../../models'),
     _ = require('lodash'),
     userSocket = require('./user.socket');
 
-var validationError = function(res, err) {
-  return res.json(422, err);
-};
-
 var LIST_STAFF_ATTRIBUTE = [
     'name',
     'address',

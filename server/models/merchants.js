@@ -39,8 +39,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
     },
     category: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.INTEGER(11)
     },
     is_delivery: {
       type: DataTypes.STRING,
@@ -68,6 +67,7 @@ module.exports = function(sequelize, DataTypes) {
       associate: function(models) {
         // associations can be defined here
         Merchants.belongsTo(models.Users, {foreignKey: 'user_id'});
+        Merchants.belongsTo(models.Merchant_Groups, {foreignKey: 'category'});
         Merchants.hasMany(models.Locations, {foreignKey: 'location_menu_id'});
       }
     }

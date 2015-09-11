@@ -5,11 +5,7 @@ var models = require('../../models'),
     config = require('../../config/environment'),
     jwt = require('jsonwebtoken'),
     _ = require('lodash');
-
-var validationError = function(res, err) {
-  return res.json(422, err);
-};
-
+    
 var LIST_ROLE_ATTRIBUTE = [
         'id',
         'name'

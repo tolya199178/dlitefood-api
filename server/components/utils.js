@@ -2,7 +2,8 @@
 var csvParser = require('csv-parse'),
   Promise = require('bluebird'),
   http = require('http'),
-  _ = require('lodash');
+  _ = require('lodash'),
+  crypto = require('crypto');
 
 var Utils = {};
 
@@ -284,4 +285,46 @@ function Marc(bf0, n, phi0, phi) {
   return (Marc);
 }
 
+/*
+  generate transaction id
+*/
+
+Utils.generateTransactionId = function(ip){
+  var md5 = crypto.createHash('md5');
+          md5.update(ip + (new Date()).getTime());
+  return md5.digest('hex');
+}
+
+
+/*
+  common utils for response write http code and response
+*/
+
+Utils.handlerSequelizeException = function(res, ex){
+  ex = ex || {};
+  return res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});
+}
+
+Utils.handlerUserInputException = function(res, ex){
+  ex = ex || {};
+  return res.json(400, {success: false, data: ex, msg: 'Please pass in right params'});
+}
+
+Utils.handlerNotFoundException = function(res, ex){
+  ex = ex || {};
+  return res.json(404, {success: false, data: ex, msg: 'Not Found !!!'});
+}
+
+Utils.handlerServerException =  function(res, ex){
+  ex = ex || {};
+  return res.json(500, {success: false, data: ex, msg: 'Exception thrown !!!'});
+}
+
+Utils.handleSuccess =  function(res, data){
+  data = data || {};
+  return res.json(200, {success: true, data: data});
+}
+
+
+// return utils
 module.exports = Utils;

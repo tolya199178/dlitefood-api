@@ -1,62 +1,75 @@
-var fs        = require('fs'),
-    path      = require('path' ),
-    Sequelize = require('sequieize' ),
-     _        = require('lodash' ),
-    http      = require('http' ),
-    queryString = require('querystring' ),
-    postData    = {};
+var fs = require('fs');
+var path = require('path');
+var Sequelize = require('sequelize');
+var _ = require('lodash');
+var http = require('http');
+var querystring = require('querystring');
+var post_data = {};
+var models  = require('../server/models/');
 
-
-var postOptions = {
+// An object of options to indicate where to post to
+var post_options = {
   host: 'localhost',
-  port: '9001',
-  path: '/api/locations',
+  port: '9000',
+  path: '/api/locations/',
   method: 'POST',
   headers: {
     'Content-Type': 'application/x-www-form-urlencoded',
-    'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9'
+    'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOjQyNzYsImlhdCI6MTQ0MTc4NzIxNTc5NywiZXhwIjoxNDQxODA1MjE1Nzk3fQ.HWz7H-C5KwOzAdgjIitDfdwZIWakpUVQ3RTE3mGKbQk'
   }
 };
 
+
 var oldDB = new Sequelize(
-  'just_fastfood', 'root', '', {
-    dialect: 'mysql',
+  'old_fastfood', 'root', 'anhlavip', {
+    dialect: "mysql",
     logging: false
-  }
-);
+  });
 
-var query = 'select * from location';
+var newDB = new Sequelize(
+  'justfast_food', 'root', 'anhlavip', {
+    dialect: "mysql",
+    logging: false
+  });
 
-oldDB.query(query, {type: oldDB.QueryTypes.SELECT})
-  .then( function (locations) {
-    console.log(locations.length);
+var query = "select * from locations, restaurants where location_menu_id = restaurants.type_id";
 
-    _.each(locations, function(location) {
-      postData = {
-        location_city : location.location_city || " ",
-        location_postcode: location.postcode || " ",
-        location_menu_id: location.menu_id || " ",
-        location_status: location.status || " ",
-      };
+oldDB
+  .query(query, {
+    type: oldDB.QueryTypes.SELECT
+  })
 
-      postData = queryString.stringify(postData);
+  .then(function(locations) {
+    _.each(locations, function(location){
+      (function(location){
+        newDB.query("select * from merchants where merchants.name = '" + location.type_name + "'", {
+          type: oldDB.QueryTypes.SELECT
+        }).then(function(merchant){
+          if (!merchant.length) return;
 
-      console.log(postData);
+          post_data = {
+            merchant_id: merchant[0].id,
+            category_id: location.category_id,
+            location_meal: location.location_meal,
+            location_name: location.location_name,
+            location_price: location.location_price,
+            location_actual_price: location.location_actual_price,
+            location_in_stock: location.location_in_stock,
+            location_details: location.location_details,
+            location_sublocation_price: location.location_sublocation_price
+          };
 
-      var postReq = http.request(postOptions, function (res) {
-        res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-          console.log(chunk);
+          // user sequelize model to insert to db
+
         });
-      });
+      })(location);
 
-      postReq.write(postData);
-      postReq.end();
-    })
-  } )
-  .catch( function (exception) {
+    });
+  })
+
+  .catch(function(exception) {
     throw new Error({
-     exception: exception,
-      msg: 'Exception from executing sequelize query !'
+      exception: exception,
+      msg: 'Exception from excecuting sequelize !'
     });
   });
