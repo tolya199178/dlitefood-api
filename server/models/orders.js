@@ -16,10 +16,6 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.INTEGER(11),
       allowNull: false,
     },
-    merchant_type: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     delivery_type: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -49,9 +45,9 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
     },
     status: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER(1),
       allowNull: false,
-      defaultValue: '3'
+      defaultValue: 3
     },
     acceptance_time: {
       type: DataTypes.DATE,

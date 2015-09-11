@@ -3,41 +3,115 @@
 var models          = require('../../models'),
     passport        = require('passport' ),
     config          = require('../../config/environment' ),
-    _               = require('lodash' );
+    _               = require('lodash' ),
+    utils           = require('../../components/utils'),
+    crypto          = require('crypto');
 
+var ORDER_STATUS = {
+  ASSIGNED: 1,
+  COMPLETED: 2,
+  PENDING: 3
+}
 
 // Creates a new order in the DB.
 exports.create = function(req, res) {
   var newOrder = req.body;
 
-  console.log(newOrder.acceptance_time);
   if (!newOrder.customer_id ||
       !newOrder.merchant_id ||
-      !newOrder.merchant_type ||
+      !newOrder.orderPrice ||
+      // !newOrder.merchant_type || -> can get it in merchant info, should remove this colum
       !newOrder.delivery_type ||
-      !newOrder.transaction_id ||
+      // !newOrder.transaction_id || --> this one will be generated
       !newOrder.transaction_details ||
       !newOrder.payment_type ||
-      !newOrder.total ||
       !newOrder.details ||
       !newOrder.note ||
       !newOrder.status ||
       !newOrder.acceptance_time
       ){
-    return res.json(400, {success: false, msg: 'Please ensure to pass the required parameters to api!'});
+    return utils.handlerUserInputException(res);
   }
 
-  // create merchant with user info
-  models.Orders.create(newOrder).then(function(order){
-    if (!order) res.json(400, {success: false, msg: 'Unknow issue !!'});
+  // get the merchant info and 
+  models.Merchants
+    .findOne({
+      where: {
+        id: newOrder.merchant_id
+      },
+      include: [
+        {
+          model: models.Merchant_Groups,
+          attributes: ['name', 'charges']
+        }
+      ]
+    })
+    .then(function(merchant){
+      if (!merchant) utils.handlerNotFoundException(res)
+      newOrder.total = calculateTotalPayment(newOrder.orderPrice, JSON.parse(merchant.Merchant_Group.charges)).toString();
 
-    res.json(200, {success: true, data: order});
-  })
-  .catch(function(exception){
-    handlerException (res, exception);
-  });
+      var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+      newOrder.transaction_id = utils.generateTransactionId(ip);
+      newOrder.status = ORDER_STATUS.PENDING;
+      
+      // create a new order
+      models.Orders.create(newOrder).then(function(order, error){
+        if (!order) utils.handlerServerException(res, error);
+
+        utils.handleSuccess(res, order);
+      })
+      .catch(function(exception){
+        handlerException (res, exception);
+      });
+
+    })
+    .catch(function(ex){
+      utils.handlerSequelizeException(res, ex);
+    });
 
 };
+
+/*
+  calculate total payment base on orderPrice and charges of merchant_type
+  @param {orderPrice} original price of order
+  @param {changes} additional charge of merchant_type
+  @result {}
+*/
+function calculateTotalPayment(orderPrice, charges){
+
+  // no addition fee
+  if (!charges || charges.length == 0)
+    return orderPrice;
+
+  // for specal case - just one condition for all price range
+  if (charges.length == 1){
+    var condition = charges[0];
+
+    // set price range, won't exist this case in reality, just return the price
+    if (charges.price){
+      return orderPrice;
+    } else {
+      return orderPrice*( 1 + parseFloat(condition.additionFee));
+    }
+  }
+
+  // have many condition for each price range
+  if (charges.length > 1){
+    var counter = 0;
+    for (;counter < charges.length; counter++){
+      if (orderPrice <= parseFloat(charges[counter].price)){
+        break;
+      }
+    }
+
+    // use previous range
+    if (counter == charges.length) counter--;
+
+    return orderPrice*( 1 + parseFloat(charges[counter].additionFee));
+  }
+
+}
 
 
 
@@ -47,6 +121,8 @@ exports.create = function(req, res) {
  * @param res
  */
 exports.index = function(req, res) {
+  req.query.limitTo = req.query.limitTo || 20;
+
   models.Orders.findAll({
    where: {'status': req.query.orderStatus},
     limit: req.query.limitTo,
@@ -55,7 +131,8 @@ exports.index = function(req, res) {
     if(error) {
       return res.send(error);
     }
-    return res.envelope(orders);
+
+    return res.json(200, {success: true, data: orders});
   })
 };
 
@@ -77,7 +154,7 @@ exports.getFew = function (req, res) {
       return res.send(error);
     }
     _.each(orders, function (value) {
-      console.log(value.dataValues.Customer.dataValues.screen_name);
+
       result.push({
         orderDetails: value.dataValues.details,
         orderDateAdded: value.dataValues.acceptance_time,
@@ -85,7 +162,7 @@ exports.getFew = function (req, res) {
       });
     });
 
-    return res.envelope(result);
+    return res.json(200, {success: true, data: result});
   });
 };
 
@@ -105,7 +182,7 @@ exports.calculateOrderStartStopPosition = function (req, res) {
     .findOne({
       where: {
         order_id: req.query.order,
-        order_status: ORDER_STATUS.WAITING
+        order_status: ORDER_STATUS.PENDING
       }
     })
     .then(function(order){
@@ -160,7 +237,7 @@ exports.calculateOrderStartStopPosition = function (req, res) {
     });
   }
   catch (exception){
-    return res.json(500, {sucess: false, data: exception});
+    handlerException(res, exception);
   }
 
 };
