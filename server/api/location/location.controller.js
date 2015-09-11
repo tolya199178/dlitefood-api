@@ -5,7 +5,7 @@ var models        = require('../../models');
 var passport      = require('passport');
 var config        = require('../../config/environment');
 
-// Get list of locations
+// Get list of locations --
 exports.index = function(req, res) {
 
   try {
