@@ -90,13 +90,6 @@ exports.index = function(req, res) {
 // };
 
 
-
-var USER_STATUS = {
-  ACTIVE: "1",
-  DISABLED: "2",
-  INACTIVE: "3"
-};
-
 /**
  * Creates a new user
  * @param {email}

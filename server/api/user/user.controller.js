@@ -7,48 +7,13 @@ var models = require('../../models'),
     _ = require('lodash'),
     userSocket = require('./user.socket');
 
-var LIST_STAFF_ATTRIBUTE = [
-    'name',
-    'address',
-    'postcode',
-    'max_distance',
-    'available_time',
-    'location'
-  ];
-
-var LIST_MERCHANT_ATTRIBUTE = [
-    'name', 
-    'picture',
-    'time',
-    'notes', 
-    'charges',
-    'steps',
-    'min_order',
-    'opening_hours',
-    'category',
-    'is_delivery',
-    'special_offer',
-    'status',
-    'food'
-  ];
-
-var LIST_CUSTOMER_ATTRIBUTE = [
-    'name',
-    'screen_name',
-    'address',
-    'address1',
-    'city',
-    'post_code',
-    'dob',
-    'verified',
-    'status',
-    'co_user',
-    'co_company_name',
-    'co_job_title',
-    'co_total_employees',
-    'co_pay_method'
-  ];
-
+var ROLES = {
+  ADMIN: 1,
+  SUPERVISOR: 2,
+  STAFF: 3,
+  MERCHANT: 4,
+  CUSTOMER: 5
+}
 
 
 /**

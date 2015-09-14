@@ -6,7 +6,8 @@ var auth  = require('../../auth/auth.service');
 
 var router = express.Router();
 
-router.get('/', auth.hasPermission('STAFF_MANAGEMENT', 'READ'), controller.index);
-router.post('/', controller.create);
+router.get('/', auth.hasPermission('CUSTOMER_MANAGEMENT', 'READ'), controller.index);
+router.post('/signup', controller.create);
+router.get('/verifyemail', controller.verifyEmail);
 
 module.exports = router;

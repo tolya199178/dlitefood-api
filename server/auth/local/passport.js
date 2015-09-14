@@ -1,6 +1,11 @@
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 
+var USER_STATUS = {
+  ACTIVE: "1",
+  DELIVERING: "2",
+  INACTIVE: "3"
+};
 
 exports.setup = function (User, config) {
   passport.use(new LocalStrategy({
@@ -17,6 +22,11 @@ exports.setup = function (User, config) {
         if (!user) {
           return done(null, false, { message: 'This email is not registered.' });
         }
+
+        if (user.status == USER_STATUS.INACTIVE){
+          return done(null, false, { message: 'This email is not verified.' });
+        }
+
         if (!user.authenticate(password)) {
           return done(null, false, { message: 'This password is not correct.' });
         }

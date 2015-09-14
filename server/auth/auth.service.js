@@ -10,6 +10,11 @@ var _ = require('lodash');
 var sequelize = require('sequelize');
 var validateJwt = expressJwt({ secret: config.secrets.session });
 
+var USER_STATUS = {
+  ACTIVE: "1",
+  DELIVERING: "2",
+  INACTIVE: "3"
+};
 /**
  * Attaches the user object to the request if authenticated
  * Otherwise returns 403
@@ -28,7 +33,10 @@ function isAuthenticated() {
     .use(function(req, res, next) {
       models.Users.findOne({
         where: {
-          id: req.user._id
+          id: req.user._id,
+          status: {
+            $in: [USER_STATUS.ACTIVE, USER_STATUS.DELIVERING]
+          }
         }
       }).then(function (user) {
         if (!user) return res.send(401);

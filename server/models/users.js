@@ -41,8 +41,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
     },
     phoneno: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.STRING
     },
     status: {
       type: DataTypes.INTEGER(1),
@@ -70,6 +69,12 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: true,
       defaultValue: 'staff'
+    },
+    token: {
+      type: DataTypes.STRING
+    },
+    token_expired: {
+      type: DataTypes.DATE
     }
   }, {
     classMethods: {

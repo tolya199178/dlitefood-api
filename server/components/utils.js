@@ -3,7 +3,8 @@ var csvParser = require('csv-parse'),
   Promise = require('bluebird'),
   http = require('http'),
   _ = require('lodash'),
-  crypto = require('crypto');
+  crypto = require('crypto'),
+  aws = require('aws-sdk');
 
 var Utils = {};
 
@@ -323,6 +324,43 @@ Utils.handlerServerException =  function(res, ex){
 Utils.handleSuccess =  function(res, data){
   data = data || {};
   return res.json(200, {success: true, data: data});
+}
+
+
+/*
+  Utils to send mail
+  @param {string[]} emails
+  @result {Object} success/failse
+*/
+Utils.sendMail = function(data, callback){
+  // load aws config - TODO need fix config.json
+  aws.config.loadFromPath('config.json');
+
+  // load AWS SES
+  var amzSES = new aws.SES({apiVersion: '2010-12-01'});
+
+  var from = from || "dlites.support@gmail.com";
+
+  amzSES.sendEmail({
+    Source: from, 
+    Destination: { ToAddresses: data.emails },
+    Message: {
+      Subject: {
+        Data: data.header
+      },
+      Body: {
+         Text: {
+             Data: data.content,
+         }
+      }
+    }
+  },
+  function(err, res) {
+    if (err)
+      callback({success: false, data: err});
+
+    callback({success: true, data: res});
+  });
 }
 
 

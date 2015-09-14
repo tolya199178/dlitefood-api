@@ -3,8 +3,8 @@
 var _ = require('lodash');
 var config = require('../../config/environment');
 var models = require('../../models');
-
-
+var crypto = require('crypto');
+var utils  = require('../../components/utils');
 
 var ROLES = {
   ADMIN: 1,
@@ -40,65 +40,110 @@ exports.index = function(req, res) {
   }
 };
 
-/**
- * Creates a new customer
- * @param {name}
- * @param {screen_name}
- * @param {address}
- * @param {postcode}
- * @param {user_id}
- * @param req
- * @param res
- * @param next
- */
-exports.create = function (req, res, next) {
-  try {
-    var newCustomer = req.body;
-    newCustomer.status = newCustomer.status || CUSTOMER_STATUS.ACTIVE;
 
-    /*
-     check mandatory fields
-     */
-    if(!newCustomer.name ||
-      !newCustomer.screen_name ||
-      !newCustomer.address ||
-      !newCustomer.postcode ||
-      !newCustomer.email ||
-      !newCustomer.password ||
-      !newCustomer.phoneno
-    ) {
-      console.log(newCustomer);
-      return res.json(400, {success: false, msg: 'Please pass in required fields to create a customer.'});
-    }
+var USER_STATUS = {
+  ACTIVE: "1",
+  DELIVERING: "2",
+  INACTIVE: "3"
+};
+/*
+  Signup function for customer with email
+  @param {String}  screen_name
+  @param {String}  email
+  @param {String}  name
+  @param {String}  postcode
+  @param {String}  password
+*/
 
-    // Lets create a user-account first
-    models.Users.createUser({
-      email: newCustomer.email,
-      phoneno: newCustomer.phoneno,
-      password: newCustomer.password,
-      name: newCustomer.name,
-      role: ROLES.CUSTOMER,
-      type: 'customer'
-    }, function (result) {
-      // can't create user
-      if(!result.success) {
-        return res.json(400, result);
-      }
-      newCustomer.user_id = result.user.id;
+exports.create = function(req, res) {
+  var customer = req.body;
 
-      // create customer with user info
-      models.Customers.create(newCustomer)
-        .then( function (customer) {
-          if(!customer) res.json(400, { success: false, msg: 'Cant return customer after saving. Please review request.'})
-          res.json(200, { success: true, data: customer});
-        } )
-    });
-
-  } catch(exception) {
-    handleError(res, exception);
+  if (!customer.screen_name ||
+    !customer.email ||
+    !customer.postcode ||
+    !customer.password ||
+    !customer.name
+  ){
+    return utils.handlerUserInputException(res);
   }
+
+  // generate token to verify in email
+  crypto.randomBytes(48, function(ex, buf) {
+    var token = buf.toString('base64').replace(/\//g,'_').replace(/\+/g,'-');
+
+    // Must create user-account first and disabled it
+    // this token will expired in 24 hours
+    models.Users.createUser({
+      email: customer.email,
+      password: customer.password,
+      name: customer.name,
+      role: ROLES.CUSTOMER,
+      type: 'customer',
+      status: USER_STATUS.INACTIVE,
+      token: token,
+      token_expired: (new Date()).getTime() + 24*60*60*1000
+    }, function(result, error){
+
+      // can't create user
+      if (!result.success){
+        return utils.handlerServerException(res, result.msg);
+      }
+
+      customer.user_id = result.user.id;
+      
+      // create customer with user info
+      models.Customers.create(customer).then(function(customer){
+        if (!customer) return utils.handlerNotFoundException(res);
+
+        //send email to verify email with above token
+        //utils.sendMail
+        
+        //return result
+        utils.handleSuccess(res, customer);
+      })
+      .catch(function(exception){
+        utils.handlerSequelizeException(res, exception);
+      });
+  });
+
+  });
 };
 
-function handleError(res, err) {
-  return res.send(500, err);
+
+
+/*
+  Verify email, after sign up people must verify their email
+*/
+
+exports.verifyEmail = function(req, res){
+  if (!req.query.token){
+    return utils.handlerUserInputException(res);
+  }
+
+  models.Users.findOne({
+    where: {
+      token: req.query.token
+    }
+  }).then(function(user){
+    if (!user) return utils.handlerNotFoundException(res);
+
+    if (new Date(user.token.token_expired) < new Date())
+      return res.json(400, {success: false, msg: 'Token has expired !'});
+
+    // update the user status
+    user.update({
+      status: USER_STATUS.ACTIVE,
+      token: "",
+      token_expired: ""
+    }).then(function(result){
+      utils.handleSuccess(res, result);
+    })
+    .catch(function(exception){
+      utils.handlerSequelizeException(res, exception);
+    });
+
+  })
+  .catch(function(exception){
+    utils.handlerSequelizeException(res, exception);
+  })
 }
