@@ -7,9 +7,15 @@ var models = require('../models');
 
 // Passport Configuration
 require('./local/passport').setup(models.Users, config);
+require('./facebook/passport').setup(models.Users, config);
+//require('./google/passport').setup(models.User, config);
+//require('./twitter/passport').setup(models.User, config);
 
 var router = express.Router();
 
 router.use('/local', require('./local'));
+router.use('/facebook', require('./facebook'));
+//router.use('/twitter', require('./twitter'));
+//router.use('/google', require('./google'));
 
 module.exports = router;

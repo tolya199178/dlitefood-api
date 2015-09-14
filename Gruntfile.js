@@ -40,7 +40,7 @@ module.exports = function (grunt) {
       dev: {
         options: {
           script: 'server/app.js',
-          debug: true
+          debug: 5859
         }
       },
       prod: {
@@ -206,7 +206,7 @@ module.exports = function (grunt) {
         options: {
           nodeArgs: ['--debug-brk'],
           env: {
-            PORT: process.env.PORT || 9001
+            PORT: 9001
           },
           callback: function (nodemon) {
             nodemon.on('log', function (event) {
@@ -216,7 +216,7 @@ module.exports = function (grunt) {
             // opens browser on initial server start
             nodemon.on('config:update', function () {
               setTimeout(function () {
-                require('open')('http://localhost:8080/debug?port=5858');
+                require('open')('http://localhost:8080/debug?port=5859');
               }, 500);
             });
           }
