@@ -21,6 +21,7 @@ module.exports = {
 
   },
 
+  // Amazon Web Service Config. Details
 
   aws : {
    userName: "dliteme_dev",
