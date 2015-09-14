@@ -21,6 +21,15 @@ module.exports = {
 
   },
 
+
+  aws : {
+   userName: "dliteme_dev",
+   pwd: "Justme11",
+   signInLink: "https://071248920477.signin.aws.amazon.com/console",
+   accessKeyID: "AKIAJM7GKN24A3TVSUYA",
+   secretAccessKey: "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"
+  },
+
   userRoles: ['staff', 'supervisor', 'user', 'admin']
 
 };
