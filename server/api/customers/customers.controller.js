@@ -92,14 +92,20 @@ exports.create = function(req, res) {
       customer.user_id = result.user.id;
       
       // create customer with user info
-      models.Customers.create(customer).then(function(customer){
-        if (!customer) return utils.handlerNotFoundException(res);
+      models.Customers.create(customer).then(function(result){
+        if (!result) return utils.handlerNotFoundException(res);
 
         //send email to verify email with above token
-        //utils.sendMail
+        utils.sendMail({
+          emails: [customer.email],
+          header: "[Dlites] Verification  Email",
+          content: 'Click here http://localhost:9001/api/customers/verifyemail?token=' + token
+        }, function(res){
+          console.log(res);
+        });
         
         //return result
-        utils.handleSuccess(res, customer);
+        utils.handleSuccess(res, result);
       })
       .catch(function(exception){
         utils.handlerSequelizeException(res, exception);

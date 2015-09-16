@@ -242,6 +242,17 @@ exports.destroy = function(req, res) {
 
 };
 
+/*
+  Check if customer can order directly or not
+  @param {INTEGER} merchantId
+  @result {Object} success/false
+*/
+exports.checkCanOrderMerchant = function(){
+  if (!req.params.id){
+    return res.json(400, {success: false, msg: 'You must pass in merchant !'});
+  }
+};
+
 
 function handlerException (res, ex){
   res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});

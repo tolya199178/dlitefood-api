@@ -4,7 +4,8 @@ var csvParser = require('csv-parse'),
   http = require('http'),
   _ = require('lodash'),
   crypto = require('crypto'),
-  aws = require('aws-sdk');
+  aws = require('aws-sdk'),
+  config = require('../config/environment');
 
 var Utils = {};
 
@@ -334,13 +335,18 @@ Utils.handleSuccess =  function(res, data){
 */
 Utils.sendMail = function(data, callback){
   // load aws config - TODO need fix config.json
-  aws.config.loadFromPath('config.json');
+  aws.config.update({
+    accessKeyId: config.aws.accessKeyID,
+    secretAccessKey: config.aws.secretAccessKey,
+    region: "us-west-2"
+  });
 
   // load AWS SES
-  var amzSES = new aws.SES({apiVersion: '2010-12-01'});
+  var amzSES = new aws.SES();
 
-  var from = from || "dlites.support@gmail.com";
+  var from = "support@dliteme.com";
 
+  console.log(data.emails);
   amzSES.sendEmail({
     Source: from, 
     Destination: { ToAddresses: data.emails },
