@@ -259,25 +259,45 @@ exports.getCategories = function(req, res){
   }
   
   var query = 'select distinct * from (select c.category_id,  c.category_name, c.category_detail from categories as c, items as i, merchants as m where m.id = '+ req.params.id +' and i.merchant_id = m.id and i.category_id = c.category_id ) as t';
-  // models.Merchants.
-  //   .findOne({
-  //     where: {
-  //       id: req.params.id
-  //     },
-  //     include: [{
-  //       model: models.Items,
-  //       where: {
-  //         item_status: ITEM_STATUS.ACTIVE
-  //       },
-  //       attributes: ['item_id', 'item_name', 'item_price', 'item_in_stock', 'item_details'],
-  //       include: [{
-  //         model: models.Categories,
-  //         attributes: ['category_id', 'category_name']
-  //       }]
-  //     }]
-  //   })
-
   models.sequelize.query(query)
+    .then(function(categories){
+      if (!categories) return res.json(404,{success: false, data: 'Can\'t find the categories ' });
+
+      return res.json(200, {success: true, data: categories});
+    })
+    .catch(function(exception){
+      handlerException (res, exception);
+    });
+
+}
+
+/*
+  Get Single Merchant information
+  @param {INTERGER} merchantId
+*/
+
+exports.single = function(req, res){
+  if (!req.params.id){
+    return res.json(400, {success: false, msg: 'You must pass in merchant !'});
+  }
+
+  models.Merchants
+    .findOne({
+      where: {
+        id: req.params.id
+      },
+      include: [{
+        model: models.Items,
+        where: {
+          item_status: ITEM_STATUS.ACTIVE
+        },
+        attributes: ['item_id', 'item_name', 'item_price', 'item_in_stock', 'item_details'],
+        include: [{
+          model: models.Categories,
+          attributes: ['category_id', 'category_name']
+        }]
+      }]
+    })
     .then(function(merchant){
       if (!merchant) return res.json(404,{success: false, data: 'Can\'t find the merchant ' });
 
