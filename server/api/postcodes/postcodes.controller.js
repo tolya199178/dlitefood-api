@@ -49,7 +49,7 @@ exports.search = function (req, res) {
 
       // return when can't find any relevant postcode
       if (postcodes.error || postcodes.data.length <= 1){
-        return res.json(400, {success: false, mgs: 'Can\'t find the postcode '});
+        return res.error(305, 'Can\'t find the postcode ');
       }
 
       // remove the csv header info
@@ -66,7 +66,7 @@ exports.search = function (req, res) {
             return res.json(400, {success: false, msg: 'No merchant within reach' });
           }
 
-          return res.json(200, {sucess: true, data: inRangeRestaurants});
+          return res.envelope(inRangeRestaurants);
         });
       }
       catch (exception){

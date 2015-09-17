@@ -38,15 +38,14 @@ var MERCHANT_STATUS = {
 
 // Get list of merchants
 exports.index = function(req, res) {
-
   try {
     models.Merchants.findAll({
       include: [{model: models.Users, attributes: ['email', 'phoneno']}]
     } ).then( function (merchants) {
-      return res.json(200, {success: true, data: merchants });
+      return res.envelope(merchants);
     } ).catch( function (exception) {
 
-      return res.json(500, {success: false, data: exception.toString(), msg: 'Exception thrown. Please review request'});
+      return res.error(305, exception.toString());
     });
 
   } catch (exception) {
@@ -112,7 +111,7 @@ exports.create = function (req, res, next) {
     }
 
     newMerchant.user_id = result.user.id;
-    
+
     // create merchant with user info
     models.Merchants.create(newMerchant).then(function(merchant){
       if (!merchant) res.json(400, {success: false, msg: 'Unknow issue !!'});
