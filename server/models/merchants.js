@@ -69,6 +69,7 @@ module.exports = function(sequelize, DataTypes) {
         Merchants.belongsTo(models.Users, {foreignKey: 'user_id'});
         Merchants.belongsTo(models.Merchant_Groups, {foreignKey: 'category'});
         Merchants.hasMany(models.Locations, {foreignKey: 'location_menu_id'});
+        Merchants.hasMany(models.Items, {foreignKey: 'merchant_id'});
       }
     }
   });

@@ -4,6 +4,7 @@ var models          = require('../../models'),
     passport        = require('passport' ),
     config          = require('../../config/environment' ),
     _               = require('lodash' ),
+    utils           = require('../../components/utils'),
     merchantSocket  = require('./merchant.socket');
 
 
@@ -242,17 +243,51 @@ exports.destroy = function(req, res) {
 
 };
 
+var ITEM_STATUS = {
+  ACTIVE: "1",
+  INACTIVE: "2"
+}
+
 /*
-  Check if customer can order directly or not
-  @param {INTEGER} merchantId
-  @result {Object} success/false
+  Get Merchant item categories
+  @param {INTERGER} merchantId
 */
-exports.checkCanOrderMerchant = function(){
+
+exports.getCategories = function(req, res){
   if (!req.params.id){
     return res.json(400, {success: false, msg: 'You must pass in merchant !'});
   }
-};
+  
+  var query = 'select distinct * from (select c.category_id,  c.category_name, c.category_detail from categories as c, items as i, merchants as m where m.id = '+ req.params.id +' and i.merchant_id = m.id and i.category_id = c.category_id ) as t';
+  // models.Merchants.
+  //   .findOne({
+  //     where: {
+  //       id: req.params.id
+  //     },
+  //     include: [{
+  //       model: models.Items,
+  //       where: {
+  //         item_status: ITEM_STATUS.ACTIVE
+  //       },
+  //       attributes: ['item_id', 'item_name', 'item_price', 'item_in_stock', 'item_details'],
+  //       include: [{
+  //         model: models.Categories,
+  //         attributes: ['category_id', 'category_name']
+  //       }]
+  //     }]
+  //   })
 
+  models.sequelize.query(query)
+    .then(function(merchant){
+      if (!merchant) return res.json(404,{success: false, data: 'Can\'t find the merchant ' });
+
+      return res.json(200, {success: true, data: merchant});
+    })
+    .catch(function(exception){
+      handlerException (res, exception);
+    });
+
+}
 
 function handlerException (res, ex){
   res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});

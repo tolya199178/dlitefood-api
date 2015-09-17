@@ -175,7 +175,7 @@ exports.getFew = function (req, res) {
  */
 exports.calculateOrderStartStopPosition = function (req, res) {
   if (!req.query.order){
-    return res.json(400, {sucess: false, msg: 'Please pass in order !'});
+    return res.json(400, {success: false, msg: 'Please pass in order !'});
   }
   try {
     models.Orders
@@ -187,7 +187,7 @@ exports.calculateOrderStartStopPosition = function (req, res) {
       })
       .then(function(order){
         if (!order){
-          return res.json(404, {sucess: false, msg: 'Can\'t find the order with input id'});
+          return res.json(404, {success: false, msg: 'Can\'t find the order with input id'});
         };
 
         var loData = utils.extractLocationData(order.orderPostcode),
