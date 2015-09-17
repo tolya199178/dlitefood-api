@@ -26,7 +26,7 @@ exports.index = function(req, res) {
         }
       ]
     } ).then( function (items) {
-      return res.json(200, {success: true, data: items });
+      return res.envelope(items);
     } ).catch( function (exception) {
 
       return res.json(500, {success: false, data: exception.toString(), msg: 'Exception thrown. Please review request'});

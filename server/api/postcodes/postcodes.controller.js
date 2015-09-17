@@ -66,7 +66,11 @@ exports.search = function (req, res) {
             return res.json(400, {success: false, msg: 'No merchant within reach' });
           }
 
+<<<<<<< HEAD
           return res.json(200, {success: true, data: inRangeRestaurants});
+=======
+          return res.envelope(inRangeRestaurants);
+>>>>>>> ad07f4e29d731e96f720e2bb9e5f8582a95b9bb2
         });
       }
       catch (exception){

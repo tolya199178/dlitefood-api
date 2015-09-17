@@ -144,12 +144,14 @@ exports.index = function(req, res) {
  */
 exports.getFew = function (req, res) {
   var result = [];
+
   models.Orders.findAll({
     where: {'status' : req.query.orderStatus},
     limit: req.query.limitTo,
     include: [{model: models.Customers, required: true}],
     order: 'updatedAt DESC'
   }).then( function (orders, error) {
+    //console.log(orders);
     if(error) {
       return res.send(error);
     }
@@ -162,7 +164,7 @@ exports.getFew = function (req, res) {
       });
     });
 
-    return res.json(200, {success: true, data: result});
+    return res.envelope(result);
   });
 };
 
@@ -231,7 +233,7 @@ exports.calculateOrderStartStopPosition = function (req, res) {
           var result = _.pick(order, ['id', 'orderMerchantType', 'orderDeliveryType', 'orderPostcode', 'orderPhoneNo']);
           result.latLon = latLon;
           result.nearestDriver = _.pick(nearestDriver, ['staff_id', 'staff_name', 'staff_email', 'staff_postcode', 'staff_phoneno', 'latLon']);
-          return res.json(200, {success: true, data: result});
+          return res.envelope(result);
         });
 
       });

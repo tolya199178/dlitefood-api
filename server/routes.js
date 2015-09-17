@@ -8,6 +8,55 @@ var errors = require('./components/errors');
 
 module.exports = function(app) {
 
+
+  app.use(function(req, res, done) {
+    res.envelope = function (data, err) {
+      var code = res.statusCode;
+
+      // When there are data in the returned object
+      res.json({
+        data: data || null,
+        meta: (err) ? {messages: [err.message || err.msg]} : {},
+        status: (code >= 200 ? 'success' : 'error'),
+        statusCode: code
+      })
+
+    };
+
+    res.error = function (statusCode, message) {
+
+      var statusMsg;
+      switch (statusCode) {
+
+        case 305:
+          statusMsg = 'Postcode_Unavailable';
+          break;
+        case 400:
+          statusMsg = 'Bad Request';
+          break;
+        case 404:
+          statusMsg = 'Unrecognised request';
+          break;
+        case 500:
+          statusMsg = 'Server Error';
+          break;
+        case 401:
+          statusMsg = 'Unauthorized';
+          break;
+
+        return statusCode;
+
+      }
+
+      res.json({
+        status: statusMsg,
+        statusCode: statusCode,
+        msg : message
+      })
+    };
+    done();
+  });
+
   // Insert routes below
   app.use('/api/locations', require('./api/location'));
   app.use('/api/merchant_groups', require('./api/merchant_group'));
@@ -31,4 +80,10 @@ module.exports = function(app) {
     .get(function(req, res) {
       res.sendfile(app.get('appPath') + '/index.html');
     });
+
+  /**
+   * Using envelope to encapsulate  returned object
+   *
+   */
+
 };
