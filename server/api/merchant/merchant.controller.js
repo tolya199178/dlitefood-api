@@ -258,7 +258,7 @@ exports.getCategories = function(req, res){
   }
   
   var query = 'select distinct * from (select c.category_id,  c.category_name, c.category_detail from categories as c, items as i, merchants as m where m.id = '+ req.params.id +' and i.merchant_id = m.id and i.category_id = c.category_id ) as t';
-  models.sequelize.query(query)
+  models.sequelize.query(query, { type: models.sequelize.QueryTypes.SELECT})
     .then(function(categories){
       if (!categories) return res.json(404,{success: false, data: 'Can\'t find the categories ' });
 
@@ -295,6 +295,8 @@ exports.single = function(req, res){
           model: models.Categories,
           attributes: ['category_id', 'category_name']
         }]
+      },{
+        model: models. Merchant_Groups
       }]
     })
     .then(function(merchant){
