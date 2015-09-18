@@ -32,7 +32,7 @@ var LIST_RESTAURANT_ATTRIBUTES = [
  * @input {String} postcode
  * @result {Object Array} list restaurant info
  */
-var INRANGE_DISTANCE = 100; //KMMETER - To be fetched from database
+var INRANGE_DISTANCE = 10; //KMMETER - To be fetched from database
 exports.search = function (req, res) {
   if (!req.query.postcode || !req.query.milesRadius){
     return res.json(400, {success: false, msg: 'Please ensure the right parameters are passed'});
@@ -44,7 +44,7 @@ exports.search = function (req, res) {
 
   utils
     .getEandN(req.query.postcode)
-    // .getEandN('PO5 4LN') for testing purpose
+    // .getEandN('PO1 1HH') //for testing purpose
     .then(function(postcodes){
 
       // return when can't find any relevant postcode
@@ -60,7 +60,7 @@ exports.search = function (req, res) {
         models.Merchants.findAll({
           include: [{ model: models.Locations} ]
         }).then(function(restaurants) {
-          var inRangeRestaurants = filterRestaurantsByPostcode(restaurants, postcodes, req.query.milesRadius);
+          var inRangeRestaurants = filterRestaurantsByPostcode(restaurants, postcodes, parseFloat(req.query.milesRadius));
 
           if(inRangeRestaurants.length === 0 || typeof inRangeRestaurants == 'undefined') {
             return res.json(400, {success: false, msg: 'No merchant within reach' });
@@ -89,6 +89,7 @@ exports.search = function (req, res) {
 var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_distance){
   var counter = 0;
   var result = [];
+  console.log(inrange_distance);
   _.each(restaurants, function(restaurant){
     var nearestLocation = null;
     var nearestDistance = 999999;
@@ -103,6 +104,7 @@ var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_dista
         var postcodeNorthing = postcode[4];
 
         var distance = utils.calcDistanceByNE(resNorthing, postcodeNorthing, resEasting, postcodeEasting);
+
         if (distance <= inrange_distance && nearestDistance > distance){
           nearestLocation = location;
           nearestDistance = distance;
