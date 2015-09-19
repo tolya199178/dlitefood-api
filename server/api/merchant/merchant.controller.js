@@ -256,7 +256,7 @@ exports.getCategories = function(req, res){
   if (!req.params.id){
     return res.json(400, {success: false, msg: 'You must pass in merchant !'});
   }
-  
+
   var query = 'select distinct * from (select c.category_id,  c.category_name, c.category_detail from categories as c, items as i, merchants as m where m.id = '+ req.params.id +' and i.merchant_id = m.id and i.category_id = c.category_id ) as t';
   models.sequelize.query(query, { type: models.sequelize.QueryTypes.SELECT})
     .then(function(categories){
@@ -272,7 +272,7 @@ exports.getCategories = function(req, res){
 
 /*
   Get Single Merchant information
-  @param {INTERGER} merchantId
+ @param {INTEGER} merchantId
 */
 
 exports.single = function(req, res){
