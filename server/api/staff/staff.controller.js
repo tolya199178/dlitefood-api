@@ -71,19 +71,20 @@ exports.index = function(req, res) {
  * restriction: 'admin'
  */
 // exports.getActiveStaff = function(req, res) {
-
+//
+//
 //   try {
 //     models.Staffs.findAll({
 //       where: {
 //         status: USER_STATUS.ACTIVE
 //       },
 //       attributes: LIST_STAFF_ATTRIBUTE
-//     }).then(function (users) {
-//       res.json(200, {success: true, data: users});
+//     }).then(function (staffs) {
+//       res.json(200, {success: true, data: staffs});
 //     })
 //     .catch(function(exception){
 //       res.json(500, {success: false, data: exception, msg: 'Exception thrown !!!'});
-//     });;
+//     });
 //   } catch (exception){
 //     res.json(500, {success: false, data: exception, msg: 'Exception thrown !!!'});
 //   }
@@ -296,24 +297,24 @@ exports.getNearest = function(req, res) {
     // get nearest driver base on order location
     models.Staffs.findAll({
       where: {
-        staff_status: STAFF_STATUS.ACTIVE.toString()
+        status: STAFF_STATUS.ACTIVE.toString()
       }
     }).then(function(staffs) {
       _.each(staffs, function(staff) {
-        var maximumDistance = parseFloat(staff.staff_max_distance);
+        var maximumDistance = parseFloat( staff.max_distance );
 
         // can't find the real staff location
         // we will use staff_postcode to find
-        if (!staff.staff_location) {
-          loData = utils.extractLocationData(staff.staff_postcode);
+        if( !staff.location ) {
+          loData = utils.extractLocationData( staff.postcode );
           var postcodeEasting = loData['E'],
             postcodeNorthing = loData['N'];
         } else {
           /*
             If we can found latest staff location, need convert it
           */
-          staff.staff_location = JSON.parse(staff.staff_location);
-          var loData = utils.LLtoNE(staff.staff_location.lat, staff.staff_location.lon)
+          staff.location = JSON.parse( staff.location );
+          var loData     = utils.LLtoNE( staff.location.lat, staff.location.lon )
           var postcodeEasting = loData['E'],
             postcodeNorthing = loData['N'];
           staff.latLon = loData;
@@ -326,14 +327,14 @@ exports.getNearest = function(req, res) {
           nearestDistance = distance;
         }
       });
-      
+
       if (nearestDriver){
-        var result = _.pick(nearestDriver, ['staff_id', 'staff_name', 'staff_email', 'staff_postcode', 'staff_phoneno', 'latLon']);
+        var result = _.pick( nearestDriver, [ 'id', 'name', 'email', 'postcode', 'phoneno', 'latLon' ] );
         result.distance = nearestDistance;
 
-        return res.json(200, { success: true, data: result });  
+        return res.json( 200, {success: true, data: result} );
       }else{
-        return res.json(404, { success: false, msg: 'Not found any driver near by' });  
+        return res.json( 404, {success: false, msg: 'Not found any driver near by'} );
       }
 
 
@@ -345,6 +346,147 @@ exports.getNearest = function(req, res) {
 
 };
 
+/**
+ Update staff location
+ @param {Integer} staff id
+ @param {Float} Latitude
+ @param {Float} Longtitude
+ */
+exports.updateLocation = function (req, res) {
+  if( !req.body.lat || !req.body.lon ) {
+    return res.json( 400, {
+      success: false,
+      msg    : 'Please pass in right data'
+    } );
+  }
+  ;
+
+  try {
+    models.Staffs
+      .findOne( {
+        where: {
+          id: req.staff.id
+        }
+      } )
+      .then( function (staff) {
+        if( !staff ) {
+          return res.json( 404, {
+            success: false,
+            msg    : 'Can\'t find the staff '
+          } );
+        }
+
+        models.Staffs.update( {
+          location: JSON.stringify( {
+            lat: req.body.lat,
+            lon: req.body.lon
+          } ),
+        }, {
+          where: {
+            id: req.staff.id
+          }
+        } ).then( function (result) {
+          if( result[ 0 ] == 1 ) {
+            userSocket.broadcastData( 'staff:location_change', {
+              id : req.staff.id,
+              lat: req.body.lat,
+              lon: req.body.lon
+            } );
+            return res.json( 200, {
+              sucess: true
+            } );
+          }
+          else
+            return res.json( 422, {
+              success: false,
+              msg    : 'Please double check the input lat lon. '
+            } );
+        } );
+
+      } );
+  } catch (exception) {
+    return res.json( 500, {
+      success: false,
+      data   : exception
+    } );
+  }
+
+};
+
+/*
+ Update staff location
+ @param {Integer} staff id
+ @param {Interge} Status
+ */
+var STAFF_STATUS = {
+  ACTIVE    : 1,
+  DELIVERING: 2,
+  INACTIVE  : 3
+};
+
+/**
+ * Update staff location
+ * @param req
+ * @param res
+ * @returns {*}
+ */
+exports.changeStatus = function (req, res) {
+
+  console.log( req.body );
+
+  if( !req.body.status ) {
+    return res.json( 400, {
+      success: false,
+      msg    : 'Please pass in right data'
+    } );
+  }
+  ;
+  console.log( req.staffs );
+  try {
+    models.Staffs
+      .findOne( {
+        where: {
+          id: req.staff.id
+        }
+      } )
+      .then( function (staff) {
+        if( !staff ) {
+          return res.json( 404, {
+            success: false,
+            msg    : 'Can\'t find the staff '
+          } );
+        }
+
+        models.Staffs.update( {
+          status: req.body.status.toString(),
+        }, {
+          where: {
+            id: req.staff.id
+          }
+        } ).then( function (result) {
+          if( result[ 0 ] == 1 ) {
+            staff.status = req.body.status;
+            userSocket.broadcastData( 'staff:status_change', staff );
+            return res.json( 200, {
+              sucess: true
+            } );
+          }
+          else
+            return res.json( 422, {
+              success: false,
+              msg    : 'Please double check the input lat lon. '
+            } );
+        } );
+
+      } );
+  } catch (exception) {
+    return res.json( 500, {
+      success: false,
+      data   : exception
+    } );
+  }
+
+};
 
 function handlerException (res, ex){
   res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});

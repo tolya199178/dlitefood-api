@@ -4,6 +4,12 @@
 
 'use strict';
 
-exports.register = function(socket) {
-  
+var models   = require( '../../models' ),
+    passport = require( 'passport' ),
+    config   = require( '../../config/environment' ),
+    jwt      = require( 'jsonwebtoken' ),
+    _        = require( 'lodash' );
+
+exports.broadcastData = function (event, data) {
+  GLOBAL.socketio.sockets.emit( event, data );
 }
