@@ -432,7 +432,6 @@ var STAFF_STATUS = {
  */
 exports.changeStatus = function (req, res) {
 
-  console.log( req.body );
 
   if( !req.body.status ) {
     return res.json( 400, {
@@ -440,13 +439,12 @@ exports.changeStatus = function (req, res) {
       msg    : 'Please pass in right data'
     } );
   }
-  ;
-  console.log( req.staffs );
+
   try {
     models.Staffs
       .findOne( {
         where: {
-          id: req.staff.id
+          id: req.user.id
         }
       } )
       .then( function (staff) {
@@ -461,7 +459,7 @@ exports.changeStatus = function (req, res) {
           status: req.body.status.toString(),
         }, {
           where: {
-            id: req.staff.id
+            id: req.user.id
           }
         } ).then( function (result) {
           if( result[ 0 ] == 1 ) {
