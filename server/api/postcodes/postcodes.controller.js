@@ -90,7 +90,6 @@ var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_dista
   inrange_distance = parseFloat(inrange_distance);
   var counter = 0;
   var result = [];
-  console.log(inrange_distance);
   _.each(restaurants, function(restaurant){
     var nearestLocation = null;
     var nearestDistance = 999999;
