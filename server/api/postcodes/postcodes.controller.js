@@ -46,7 +46,6 @@ exports.search = function (req, res) {
     .getEandN(req.query.postcode)
     // .getEandN('PO5 4LN') for testing purpose
     .then(function(postcodes){
-
       // return when can't find any relevant postcode
       if (postcodes.error || postcodes.data.length <= 1){
         return res.json(400, {success: false, mgs: 'Can\'t find the postcode '});
@@ -86,6 +85,7 @@ exports.search = function (req, res) {
 
 
 var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_distance){
+  inrange_distance = parseFloat(inrange_distance);
   var counter = 0;
   var result = [];
   _.each(restaurants, function(restaurant){
@@ -102,6 +102,7 @@ var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_dista
         var postcodeNorthing = postcode[4];
 
         var distance = utils.calcDistanceByNE(resNorthing, postcodeNorthing, resEasting, postcodeEasting);
+        distance = parseFloat(distance);
         if (distance <= inrange_distance && nearestDistance > distance){
           nearestLocation = location;
           nearestDistance = distance;
@@ -118,7 +119,6 @@ var filterRestaurantsByPostcode = function(restaurants, postcodes, inrange_dista
     }
 
   });
-
   return result;
 }
 
