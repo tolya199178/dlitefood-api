@@ -37,6 +37,7 @@ exports.create = function(req, res) {
       "description": "This is the payment description."
     }]
   };
+  //@todo this parameter will replaced with realdata.
   paypal.payment.create(create_payment_json, function (error, payment) {
     if (error) {
       throw error;
