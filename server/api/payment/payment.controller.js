@@ -77,14 +77,8 @@ exports.create = function(req, res) {
           if (error) {
             throw error;
           } else {
-            // create a new order
-            models.Orders.create(newOrder).then(function(order, error){
-              if (!order) utils.handlerServerException(res, error);
-              utils.handleSuccess(res, order);
-            })
-              .catch(function(exception){
-                handlerException (res, exception);
-              });
+            client.hmset(payment.id, newOrder);
+            client.expire(payment.id, 300);
             res.json(payment);
           }
         });
@@ -96,6 +90,20 @@ exports.create = function(req, res) {
 }
 
 
+
+exports.confirm = function(req, res) {
+  var paymentid = req.query.paymentId;
+  client.hgetall(paymentid, function(err, newOrder) {
+    // create a new order
+    newOrder.transaction_id = paymentid;
+    models.Orders.create(newOrder).then(function(order, error){
+      if (!order) utils.handlerServerException(res, error);
+      utils.handleSuccess(res, order);
+    }).catch(function(exception){
+        handlerException (res, exception);
+      });
+  });
+}
 
 /*
  calculate total payment base on orderPrice and charges of merchant_type
