@@ -36,6 +36,12 @@ module.exports = {
    secretAccessKey: "MKGmX0EwLUG0bNFll0dAkMNStlmsXMkHspePeICg"
   },
 
-  userRoles: ['staff', 'supervisor', 'user', 'admin']
+  userRoles: ['staff', 'supervisor', 'user', 'admin'],
+
+  paypal:{
+    'mode': 'sandbox', //sandbox or live
+    'client_id': 'AbErsgYKjYljBJnjrf4LB6FTnfAGuMS7G4GAtx-34T9K93VyxWEkMJQDKNxDxpNELikYQHdZEoBXguIo',
+    'client_secret': 'EJYD3XKYOOsynJUth6OogpH7lUvip1IwywMi3Wd7M9aGfNuCAvv8--au2zoUMIEts80iz903DydNaTbv'
+  }
 
 };
