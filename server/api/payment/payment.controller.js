@@ -33,6 +33,7 @@ exports.create = function(req, res) {
     return utils.handlerUserInputException(res);
   }
   if(newOrder.payment_type == "paypal"){
+    console.log( 'we are here' );
     // get the merchant info and
     models.Merchants
       .findOne({
@@ -62,20 +63,20 @@ exports.create = function(req, res) {
             }
           },
           "redirect_urls": {
-            "return_url": "http://localhost:9001/api/payment/confirm",
-            "cancel_url": "http://localhost:9001/api/payment/cancel"
+            "return_url": config.paypal.redirect_urls.return_url,
+            "cancel_url": config.paypal.redirect_urls.cancel_url
           },
           "transactions": [{
             "amount": {
-              "currency": "EUR",
+              "currency": "GBP",
               "total": newOrder.total
             },
-            "description": "This is the payment description."
+            "description": "Payment for a new order, ID " + newOrder.current_id
           }]
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
-            throw error;
+            res.json( 500, {success: false, msg: 'An error occurred: ' + error} );
           } else {
             // create a new order
             models.Orders.create(newOrder).then(function(order, error){
@@ -85,13 +86,15 @@ exports.create = function(req, res) {
               .catch(function(exception){
                 handlerException (res, exception);
               });
-            res.json(payment);
+            res.envelope( payment );
           }
         });
       })
       .catch(function(ex){
         utils.handlerSequelizeException(res, ex);
       });
+  } else {
+    return utils.handlerUserInputException( res );
   }
 }
 
@@ -109,7 +112,7 @@ function calculateTotalPayment(orderPrice, charges){
   if (!charges || charges.length == 0)
     return orderPrice;
 
-  // for specal case - just one condition for all price range
+  // for special case - just one condition for all price range
   if (charges.length == 1){
     var condition = charges[0];
 

@@ -40,8 +40,15 @@ module.exports = {
 
   paypal:{
     'mode': 'sandbox', //sandbox or live
-    'client_id': 'AbErsgYKjYljBJnjrf4LB6FTnfAGuMS7G4GAtx-34T9K93VyxWEkMJQDKNxDxpNELikYQHdZEoBXguIo',
-    'client_secret': 'EJYD3XKYOOsynJUth6OogpH7lUvip1IwywMi3Wd7M9aGfNuCAvv8--au2zoUMIEts80iz903DydNaTbv'
+    'endpoint'     : 'api.sandbox.paypal.com',
+    'client_id'    : 'ASfj4D8bWWrGBKOuOdoyES2uY6yyXalvKi1JoB0XvlczbsGvxBBLNZs5O0gZJWoVMOmgQUrKqMb5GsIM',
+    'client_secret': 'EPYecaOXZAixTw8HL9-WV4SlhFlqcJSdBYTRc7f6FDvuz2mqwBMpe4JiulcDsZqXuIyMmRucskNIqOig',
+
+    "redirect_urls": {
+      "return_url": "http://localhost:9001/api/payment/confirm", // https://dliteme.com/api/payments/confirm
+      "cancel_url": "http://localhost:9001/api/payment/cancel"   // https://dliteme.com/api/payments/cancel
+    }
+
   }
 
 };
