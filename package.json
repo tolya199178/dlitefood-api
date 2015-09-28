@@ -29,6 +29,7 @@
     "passport-local": "~0.1.6",
     "passport-twitter": "latest",
     "paypal-rest-sdk": "^1.6.1",
+    "redis": "^2.0.1",
     "sequelize": "^3.3.1",
     "sequelize-cli": "^1.7.0",
     "sequelize-restful": "^0.4.3",
