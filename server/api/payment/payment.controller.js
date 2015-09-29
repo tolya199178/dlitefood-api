@@ -18,20 +18,14 @@ var ORDER_STATUS = {
 exports.create = function(req, res) {
   paypal.configure(config.paypal);
   var client = redis.createClient(config.redis.port, config.redis.host);
-
   var newOrder = req.body;
 
   if (!newOrder.customer_id ||
     !newOrder.merchant_id ||
-    !newOrder.total ||
     !newOrder.delivery_type ||
-    !newOrder.transaction_details ||
     !newOrder.payment_type ||
     !newOrder.details ||
     !newOrder.note ||
-    !newOrder.status ||
-    !newOrder.delivery_fee ||
-    !newOrder.acceptance_time||
     !newOrder.email
   ){
     return utils.handlerUserInputException(res);
@@ -85,12 +79,13 @@ exports.create = function(req, res) {
           "transactions": [{
             "amount": {
               "currency": "GBP",
-              "total": Math.floor(parseFloat(newOrder.total*100))/100,
-              "details": {
-                "subtotal": "", // TODO: Get subtotal from local storage in front end
-                "tax": newOrder.total * 0.20,
-                "handling_fee": newOrder.delivery_fee
-              }
+              "total": Math.floor(parseFloat(newOrder.total*100))/100
+              //,
+              //"details": {
+              //  "subtotal": "", // TODO: Get subtotal from local storage in front end
+              //  "tax": newOrder.total * 0.20,
+              //  "handling_fee": newOrder.delivery_fee
+              //}
             },
             "description": "This is the payment description."
           }]

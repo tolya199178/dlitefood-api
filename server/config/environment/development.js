@@ -45,10 +45,15 @@ module.exports = {
     'client_secret': 'EPYecaOXZAixTw8HL9-WV4SlhFlqcJSdBYTRc7f6FDvuz2mqwBMpe4JiulcDsZqXuIyMmRucskNIqOig',
 
     "redirect_urls": {
-      "return_url": "http://localhost:9001/api/payment/confirm", // https://dliteme.com/api/payments/confirm
-      "cancel_url": "http://localhost:9001/api/payment/cancel"   // https://dliteme.com/api/payments/cancel
+      "return_url": "http://Ylocalhost:9000/#!/checkout/comfirm", // https://dliteme.com/api/payments/confirm
+      "cancel_url": "http://localhost:9000/#!/checkout/cancel"   // https://dliteme.com/api/payments/cancel
     }
 
+  },
+
+  redis: {
+    host: "localhost",
+    port: 6379
   }
 
 };
