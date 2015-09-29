@@ -50,7 +50,7 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: 3
     },
     delivery_fee: {
-      type: DataTypes.STRING,
+      type     : DataTypes.STRING,
       allowNull: false
     },
     acceptance_time: {
