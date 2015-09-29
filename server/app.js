@@ -12,7 +12,7 @@ var express = require('express'),
     sequelize  = require('./components/db' ),
     models     = require('./models');
 
-<<<<<<< HEAD
+
 
 //set redis
 var redis = require( 'redis' );
@@ -22,9 +22,7 @@ client.on( 'connect', function () {
 } );
 
 
-=======
 
->>>>>>> fe48b1ad103e8f632858830f76b1650776883254
 // Connect to database
 
 // Setup server

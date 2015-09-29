@@ -7,8 +7,8 @@ var models          = require('../../models'),
   _               = require('lodash' ),
   utils           = require('../../components/utils'),
   crypto          = require('crypto'),
-  paypal          = require('paypal-rest-sdk'),
-  redis           = require("redis");
+    paypal = require( 'paypal-rest-sdk' ),
+    redis  = require( "redis" );
 
 var ORDER_STATUS = {
   ASSIGNED: 1,
@@ -17,11 +17,10 @@ var ORDER_STATUS = {
 }
 exports.create = function(req, res) {
   paypal.configure(config.paypal);
-  var client = redis.createClient(config.redis.port, config.redis.host);
+  var client = redis.createClient( config.redis.port, config.redis.host );
   var newOrder = req.body;
 
-  if (!newOrder.customer_id ||
-    !newOrder.merchant_id ||
+  if( !newOrder.customer_id || !newOrder.merchant_id ||
     !newOrder.delivery_type ||
     !newOrder.payment_type ||
     !newOrder.details ||
@@ -45,26 +44,25 @@ exports.create = function(req, res) {
         ]
       })
       .then(function(merchant){
-        if (!merchant) utils.handlerNotFoundException(res)
-        newOrder.total = calculateTotalPayment(newOrder.orderPrice, JSON.parse(merchant.Merchant_Group.charges)).toString();
+        if( !merchant ) utils.handlerNotFoundException( res )
+        newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
 
 
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         newOrder.transaction_id = utils.generateTransactionId(ip);
         newOrder.status = ORDER_STATUS.PENDING;
 
-
-        var carts = JSON.parse(newOrder.details);
+        var carts = JSON.parse( newOrder.details );
         var items = [];
-        _.each(carts, function(value){
-          items.push({
-            'name':value.name,
-            'sku':'item',
-            'price':value.price,
-            'currency':"EUR",
-            'quantity':value.quantity
-          })
-        });
+        _.each( carts, function (value) {
+          items.push( {
+            'name'    : value.name,
+            'sku'     : 'item',
+            'price'   : value.price,
+            'currency': "EUR",
+            'quantity': value.quantity
+          } )
+        } );
 
 
         var create_payment_json = {
@@ -76,10 +74,10 @@ exports.create = function(req, res) {
             "return_url": config.paypal.redirect_urls.return_url, //will be replaced
             "cancel_url": config.paypal.redirect_urls.cancel_url //will be replaced
           },
-          "transactions": [{
+          "transactions": [ {
             "amount": {
               "currency": "GBP",
-              "total": Math.floor(parseFloat(newOrder.total*100))/100
+              "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100
               //,
               //"details": {
               //  "subtotal": "", // TODO: Get subtotal from local storage in front end
@@ -88,16 +86,16 @@ exports.create = function(req, res) {
               //}
             },
             "description": "This is the payment description."
-          }]
+          } ]
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
-            console.log(error);
+            console.log( error );
             throw error;
           } else {
-            client.hmset(payment.id, newOrder);
-            client.expire(payment.id, 600);
-            return res.json(200, {success: true, data: payment.links});
+            client.hmset( payment.id, newOrder );
+            client.expire( payment.id, 600 );
+            return res.json( 200, {success: true, data: payment.links} );
           }
         });
       })
@@ -107,26 +105,24 @@ exports.create = function(req, res) {
   }
 }
 
-
-
-exports.confirm = function(req, res) {
+exports.confirm = function (req, res) {
   var paymentid = req.body.paymentId;
-  var token = req.body.token;
-  var client = redis.createClient(config.redis.port, config.redis.host);
-  client.hgetall(paymentid, function(err, newOrder) {
+  var token  = req.body.token;
+  var client = redis.createClient( config.redis.port, config.redis.host );
+  client.hgetall( paymentid, function (err, newOrder) {
     // create a new order
-    if(newOrder){
+    if( newOrder ) {
       newOrder.transaction_id = paymentid;
-      models.Orders.create(newOrder).then(function(order, error){
-        if (!order) utils.handlerServerException(res, error);
-        return res.json(200, {success: true, data: newOrder});
-      }).catch(function(exception){
-        handlerException (res, exception);
-      });
-    }else{
-      return res.json(200, {success: false, data: null});
+      models.Orders.create( newOrder ).then( function (order, error) {
+        if( !order ) utils.handlerServerException( res, error );
+        return res.json( 200, {success: true, data: newOrder} );
+      } ).catch( function (exception) {
+        handlerException( res, exception );
+      } );
+    } else {
+      return res.json( 200, {success: false, data: null} );
     }
-  });
+  } );
 }
 
 /*
