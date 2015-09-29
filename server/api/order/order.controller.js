@@ -84,7 +84,7 @@ function calculateTotalPayment(orderPrice, charges){
   if (!charges || charges.length == 0)
     return orderPrice;
 
-  // for specal case - just one condition for all price range
+  // for specal case - just one condition for all price rang
   if (charges.length == 1){
     var condition = charges[0];
 

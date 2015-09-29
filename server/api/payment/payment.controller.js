@@ -7,7 +7,8 @@ var models          = require('../../models'),
   _               = require('lodash' ),
   utils           = require('../../components/utils'),
   crypto          = require('crypto'),
-  paypal          = require('paypal-rest-sdk');
+  paypal          = require('paypal-rest-sdk'),
+  redis           = require("redis");
 
 var ORDER_STATUS = {
   ASSIGNED: 1,
@@ -16,19 +17,18 @@ var ORDER_STATUS = {
 }
 exports.create = function(req, res) {
   paypal.configure(config.paypal);
+  var client = redis.createClient(config.redis.port, config.redis.host);
+
   var newOrder = req.body;
 
   if (!newOrder.customer_id ||
-    !newOrder.merchant_id ||
-    !newOrder.orderPrice ||
-    !newOrder.delivery_type ||
-    !newOrder.transaction_details ||
-    !newOrder.payment_type ||
-    !newOrder.details ||
-    !newOrder.note ||
-    !newOrder.status ||
-    !newOrder.acceptance_time||
-    !newOrder.email
+  !newOrder.merchant_id ||
+  !newOrder.orderPrice ||
+  !newOrder.delivery_type ||
+  !newOrder.payment_type ||
+  !newOrder.details ||
+  !newOrder.note ||
+  !newOrder.email
   ){
     return utils.handlerUserInputException(res);
   }
@@ -49,37 +49,51 @@ exports.create = function(req, res) {
       .then(function(merchant){
         if (!merchant) utils.handlerNotFoundException(res)
         newOrder.total = calculateTotalPayment(newOrder.orderPrice, JSON.parse(merchant.Merchant_Group.charges)).toString();
+
+
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         newOrder.transaction_id = utils.generateTransactionId(ip);
         newOrder.status = ORDER_STATUS.PENDING;
 
+
+        var carts = JSON.parse(newOrder.details);
+        var items = [];
+        _.each(carts, function(value){
+          items.push({
+            'name':value.name,
+            'sku':'item',
+            'price':value.price,
+            'currency':"EUR",
+            'quantity':value.quantity
+          })
+        })
+
+
         var create_payment_json = {
           "intent": "sale",
           "payer": {
-            "payment_method": "paypal",
-            "payer_info": {
-              "email": newOrder.email
-            }
+            "payment_method": "paypal"
           },
           "redirect_urls": {
-            "return_url": "http://localhost:9001/api/payment/confirm",
-            "cancel_url": "http://localhost:9001/api/payment/cancel"
+            "return_url": "http://localhost:9000/#!/checkout/confirm", //will be replaced
+            "cancel_url": "http://localhost:9000/#!/checkout/cancel" //will be replaced
           },
           "transactions": [{
             "amount": {
               "currency": "EUR",
-              "total": newOrder.total
+              "total": Math.floor(parseFloat(newOrder.total*100))/100
             },
             "description": "This is the payment description."
           }]
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
+            console.log(error);
             throw error;
           } else {
             client.hmset(payment.id, newOrder);
-            client.expire(payment.id, 300);
-            res.json(payment);
+            client.expire(payment.id, 600);
+            return res.json(200, {success: true, data: payment.links});
           }
         });
       })
@@ -92,16 +106,22 @@ exports.create = function(req, res) {
 
 
 exports.confirm = function(req, res) {
-  var paymentid = req.query.paymentId;
+  var paymentid = req.body.paymentId;
+  var token = req.body.token;
+  var client = redis.createClient(config.redis.port, config.redis.host);
   client.hgetall(paymentid, function(err, newOrder) {
     // create a new order
-    newOrder.transaction_id = paymentid;
-    models.Orders.create(newOrder).then(function(order, error){
-      if (!order) utils.handlerServerException(res, error);
-      utils.handleSuccess(res, order);
-    }).catch(function(exception){
+    if(newOrder){
+      newOrder.transaction_id = paymentid;
+      models.Orders.create(newOrder).then(function(order, error){
+        if (!order) utils.handlerServerException(res, error);
+        return res.json(200, {success: true, data: newOrder});
+      }).catch(function(exception){
         handlerException (res, exception);
       });
+    }else{
+      return res.json(200, {success: false, data: null});
+    }
   });
 }
 

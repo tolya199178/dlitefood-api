@@ -12,19 +12,12 @@ var express = require('express'),
     sequelize  = require('./components/db' ),
     models     = require('./models');
 
-//set redis
-var redis = require('redis');
-var client = redis.createClient();
-client.on('connect', function() {
-  console.log('connected');
-});
-
-
-
 // Connect to database
 
 // Setup server
 var app = express();
+
+
 var server = require('http').createServer(app);
 GLOBAL.socketio = require('socket.io')(server, {
   serveClient: (config.env === 'production') ? false : true,

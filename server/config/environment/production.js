@@ -21,5 +21,9 @@ module.exports = {
     dialect: "mysql",
     autoMigrateOldSchema: true,
     logging: false
+  },
+  redis: {
+    host: "localhost",
+    port: 6379
   }
 };
