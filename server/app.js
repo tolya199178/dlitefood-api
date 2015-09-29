@@ -13,11 +13,11 @@ var express = require('express'),
     models     = require('./models');
 
 //set redis
-var redis = require('redis');
+var redis = require( 'redis' );
 var client = redis.createClient();
-client.on('connect', function() {
-  console.log('connected');
-});
+client.on( 'connect', function () {
+  console.log( 'connected' );
+} );
 
 
 

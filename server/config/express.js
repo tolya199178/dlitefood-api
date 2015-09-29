@@ -15,8 +15,13 @@ var errorHandler = require('errorhandler');
 var path = require('path');
 var config = require('./environment');
 var passport = require('passport');
+var redis      = require( 'redis' );
 var session = require('express-session');
+var redisStore = require( 'connect-redis' )( session );
 var cors = require('cors');
+
+// Create Redis client
+var client = redis.createClient();
 
 module.exports = function(app) {
   var env = app.get('env');
@@ -30,7 +35,17 @@ module.exports = function(app) {
   app.use(cookieParser());
   app.use(passport.initialize());
   app.use(cors());
-  
+  app.use( session(
+    {
+      secret: 'dliteme',
+      store : new redisStore( {
+        host  : 'localhost', // TODO: Production value to be entered
+        port  : 6379,
+        client: client
+      } )
+    }
+  ) );
+
   if ('production' === env) {
     app.use(favicon(path.join(config.root, 'public', 'favicon.ico')));
     app.use(express.static(path.join(config.root, 'public')));

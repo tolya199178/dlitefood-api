@@ -7,20 +7,25 @@ var models          = require('../../models'),
   _               = require('lodash' ),
   utils           = require('../../components/utils'),
   crypto          = require('crypto'),
+    redis  = require( 'redis' ),
+    client = redis.createClient(),
   paypal          = require('paypal-rest-sdk');
 
 var ORDER_STATUS = {
   ASSIGNED: 1,
   COMPLETED: 2,
   PENDING: 3
-}
+};
+
+client.on( 'error', function (error) {
+  console.log( 'error in redis ', error );
+} );
 exports.create = function(req, res) {
   paypal.configure(config.paypal);
   var newOrder = req.body;
 
   if (!newOrder.customer_id ||
-    !newOrder.merchant_id ||
-    !newOrder.orderPrice ||
+    !newOrder.merchant_id || !newOrder.total ||
     !newOrder.delivery_type ||
     !newOrder.transaction_details ||
     !newOrder.payment_type ||
@@ -33,7 +38,6 @@ exports.create = function(req, res) {
     return utils.handlerUserInputException(res);
   }
   if(newOrder.payment_type == "paypal"){
-    console.log( 'we are here' );
     // get the merchant info and
     models.Merchants
       .findOne({
@@ -48,39 +52,48 @@ exports.create = function(req, res) {
         ]
       })
       .then(function(merchant){
-        if (!merchant) utils.handlerNotFoundException(res)
-        newOrder.total = calculateTotalPayment(newOrder.orderPrice, JSON.parse(merchant.Merchant_Group.charges)).toString();
+        if( !merchant ) utils.handlerNotFoundException( res );
+        //newOrder.total = calculateTotalPayment(newOrder.total,
+        // JSON.parse(merchant.Merchant_Group.charges)).toString();
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         newOrder.transaction_id = utils.generateTransactionId(ip);
         newOrder.status = ORDER_STATUS.PENDING;
 
+        console.log( newOrder.total );
         var create_payment_json = {
           "intent": "sale",
           "payer": {
             "payment_method": "paypal",
             "payer_info": {
-              "email": newOrder.email
+
             }
           },
           "redirect_urls": {
             "return_url": config.paypal.redirect_urls.return_url,
             "cancel_url": config.paypal.redirect_urls.cancel_url
           },
-          "transactions": [{
-            "amount": {
-              "currency": "GBP",
-              "total": newOrder.total
-            },
-            "description": "Payment for a new order, ID " + newOrder.current_id
-          }]
+          "transactions": [
+            {
+              "amount"     : {
+                "currency": "GBP",
+                "total"   : newOrder.total,
+                "details" : {
+                  "subtotal"    : "30.00",
+                  "tax"         : "2.00",
+                  "handling_fee": "3.00"
+                }
+              },
+              "description": "Payment for a new order, ID " + newOrder.order_no
+            }
+          ]
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
             res.json( 500, {success: false, msg: 'An error occurred: ' + error} );
           } else {
-            client.hmset(payment.id, newOrder);
-            client.expire(payment.id, 300);
-            res.json(payment);
+            client.hmset( "payment_id", payment.id );
+            client.hmset( 'customer_id', newOrder.customer_id )
+            res.json( payment );
           }
         });
       })
@@ -90,20 +103,18 @@ exports.create = function(req, res) {
   }
 }
 
-
-
-exports.confirm = function(req, res) {
+exports.confirm = function (req, res) {
   var paymentid = req.query.paymentId;
-  client.hgetall(paymentid, function(err, newOrder) {
+  client.hgetall( paymentid, function (err, newOrder) {
     // create a new order
     newOrder.transaction_id = paymentid;
-    models.Orders.create(newOrder).then(function(order, error){
-      if (!order) utils.handlerServerException(res, error);
-      utils.handleSuccess(res, order);
-    }).catch(function(exception){
-        handlerException (res, exception);
-      });
-  });
+    models.Orders.create( newOrder ).then( function (order, error) {
+      if( !order ) utils.handlerServerException( res, error );
+      utils.handleSuccess( res, order );
+    } ).catch( function (exception) {
+      handlerException( res, exception );
+    } );
+  } );
 }
 
 /*
