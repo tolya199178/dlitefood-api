@@ -45,7 +45,7 @@ module.exports = {
     'client_secret': 'EPYecaOXZAixTw8HL9-WV4SlhFlqcJSdBYTRc7f6FDvuz2mqwBMpe4JiulcDsZqXuIyMmRucskNIqOig',
 
     "redirect_urls": {
-      "return_url": "http://Ylocalhost:9000/#!/checkout/comfirm", // https://dliteme.com/api/payments/confirm
+      "return_url": "http://localhost:9000/#!/checkout/confirm", // https://dliteme.com/api/payments/confirm
       "cancel_url": "http://localhost:9000/#!/checkout/cancel"   // https://dliteme.com/api/payments/cancel
     }
 
@@ -54,6 +54,14 @@ module.exports = {
   redis: {
     host: "localhost",
     port: 6379
+  },
+
+  // AWS S3 Config
+
+  aws_s3: {
+    userName: 'dlitedev',
+    pwd: '5j|*#4}V[[8L',
+    signinLink: 'https://071248920477.signin.aws.amazon.com/console'
   }
 
 };

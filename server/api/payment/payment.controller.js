@@ -20,7 +20,8 @@ exports.create = function(req, res) {
   var client = redis.createClient( config.redis.port, config.redis.host );
   var newOrder = req.body;
 
-  if( !newOrder.customer_id || !newOrder.merchant_id ||
+  if( !newOrder.customer_id ||
+    !newOrder.merchant_id ||
     !newOrder.delivery_type ||
     !newOrder.payment_type ||
     !newOrder.details ||
@@ -44,7 +45,7 @@ exports.create = function(req, res) {
         ]
       })
       .then(function(merchant){
-        if( !merchant ) utils.handlerNotFoundException( res )
+        if( !merchant ) utils.handlerNotFoundException( res );
         newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
 
 
@@ -59,11 +60,11 @@ exports.create = function(req, res) {
             'name'    : value.name,
             'sku'     : 'item',
             'price'   : value.price,
-            'currency': "EUR",
+            'currency': "GBP",
             'quantity': value.quantity
           } )
         } );
-
+        console.log(items);
 
         var create_payment_json = {
           "intent": "sale",
@@ -77,13 +78,12 @@ exports.create = function(req, res) {
           "transactions": [ {
             "amount": {
               "currency": "GBP",
-              "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100
-              //,
+              "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100,
               //"details": {
               //  "subtotal": "", // TODO: Get subtotal from local storage in front end
               //  "tax": newOrder.total * 0.20,
-              //  "handling_fee": newOrder.delivery_fee
-              //}
+               // "handling_fee": newOrder.delivery_fee
+             // }
             },
             "description": "This is the payment description."
           } ]

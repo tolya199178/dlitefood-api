@@ -304,7 +304,7 @@ Utils.generateTransactionId = function(ip){
 
 Utils.handlerSequelizeException = function(res, ex){
   ex = ex || {};
-  return res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});
+  return res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown in Sequelize !!!'});
 }
 
 Utils.handlerUserInputException = function(res, ex){
@@ -348,7 +348,7 @@ Utils.sendMail = function(data, callback){
 
   console.log(data.emails);
   amzSES.sendEmail({
-    Source: from, 
+    Source: from,
     Destination: { ToAddresses: data.emails },
     Message: {
       Subject: {
