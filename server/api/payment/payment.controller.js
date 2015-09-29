@@ -7,31 +7,30 @@ var models          = require('../../models'),
   _               = require('lodash' ),
   utils           = require('../../components/utils'),
   crypto          = require('crypto'),
-    redis  = require( 'redis' ),
-    client = redis.createClient(),
-  paypal          = require('paypal-rest-sdk');
+  paypal          = require('paypal-rest-sdk'),
+  redis           = require("redis");
 
 var ORDER_STATUS = {
   ASSIGNED: 1,
   COMPLETED: 2,
   PENDING: 3
-};
-
-client.on( 'error', function (error) {
-  console.log( 'error in redis ', error );
-} );
+}
 exports.create = function(req, res) {
   paypal.configure(config.paypal);
+  var client = redis.createClient(config.redis.port, config.redis.host);
+
   var newOrder = req.body;
 
   if (!newOrder.customer_id ||
-    !newOrder.merchant_id || !newOrder.total ||
+    !newOrder.merchant_id ||
+    !newOrder.total ||
     !newOrder.delivery_type ||
     !newOrder.transaction_details ||
     !newOrder.payment_type ||
     !newOrder.details ||
     !newOrder.note ||
     !newOrder.status ||
+    !newOrder.delivery_fee ||
     !newOrder.acceptance_time||
     !newOrder.email
   ){
@@ -52,48 +51,58 @@ exports.create = function(req, res) {
         ]
       })
       .then(function(merchant){
-        if( !merchant ) utils.handlerNotFoundException( res );
-        //newOrder.total = calculateTotalPayment(newOrder.total,
-        // JSON.parse(merchant.Merchant_Group.charges)).toString();
+        if (!merchant) utils.handlerNotFoundException(res)
+        newOrder.total = calculateTotalPayment(newOrder.orderPrice, JSON.parse(merchant.Merchant_Group.charges)).toString();
+
+
         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         newOrder.transaction_id = utils.generateTransactionId(ip);
         newOrder.status = ORDER_STATUS.PENDING;
 
-        console.log( newOrder.total );
+
+        var carts = JSON.parse(newOrder.details);
+        var items = [];
+        _.each(carts, function(value){
+          items.push({
+            'name':value.name,
+            'sku':'item',
+            'price':value.price,
+            'currency':"EUR",
+            'quantity':value.quantity
+          })
+        });
+
+
         var create_payment_json = {
           "intent": "sale",
           "payer": {
-            "payment_method": "paypal",
-            "payer_info": {
-
-            }
+            "payment_method": "paypal"
           },
           "redirect_urls": {
-            "return_url": config.paypal.redirect_urls.return_url,
-            "cancel_url": config.paypal.redirect_urls.cancel_url
+            "return_url": config.paypal.redirect_urls.return_url, //will be replaced
+            "cancel_url": config.paypal.redirect_urls.cancel_url //will be replaced
           },
-          "transactions": [
-            {
-              "amount"     : {
-                "currency": "GBP",
-                "total"   : newOrder.total,
-                "details" : {
-                  "subtotal"    : "30.00",
-                  "tax"         : "2.00",
-                  "handling_fee": "3.00"
-                }
-              },
-              "description": "Payment for a new order, ID " + newOrder.order_no
-            }
-          ]
+          "transactions": [{
+            "amount": {
+              "currency": "GBP",
+              "total": Math.floor(parseFloat(newOrder.total*100))/100,
+              "details": {
+                "subtotal": "", // TODO: Get subtotal from local storage in front end
+                "tax": newOrder.total * 0.20,
+                "handling_fee": newOrder.delivery_fee
+              }
+            },
+            "description": "This is the payment description."
+          }]
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
-            res.json( 500, {success: false, msg: 'An error occurred: ' + error} );
+            console.log(error);
+            throw error;
           } else {
-            client.hmset( "payment_id", payment.id );
-            client.hmset( 'customer_id', newOrder.customer_id )
-            res.json( payment );
+            client.hmset(payment.id, newOrder);
+            client.expire(payment.id, 600);
+            return res.json(200, {success: true, data: payment.links});
           }
         });
       })
@@ -103,18 +112,26 @@ exports.create = function(req, res) {
   }
 }
 
-exports.confirm = function (req, res) {
-  var paymentid = req.query.paymentId;
-  client.hgetall( paymentid, function (err, newOrder) {
+
+
+exports.confirm = function(req, res) {
+  var paymentid = req.body.paymentId;
+  var token = req.body.token;
+  var client = redis.createClient(config.redis.port, config.redis.host);
+  client.hgetall(paymentid, function(err, newOrder) {
     // create a new order
-    newOrder.transaction_id = paymentid;
-    models.Orders.create( newOrder ).then( function (order, error) {
-      if( !order ) utils.handlerServerException( res, error );
-      utils.handleSuccess( res, order );
-    } ).catch( function (exception) {
-      handlerException( res, exception );
-    } );
-  } );
+    if(newOrder){
+      newOrder.transaction_id = paymentid;
+      models.Orders.create(newOrder).then(function(order, error){
+        if (!order) utils.handlerServerException(res, error);
+        return res.json(200, {success: true, data: newOrder});
+      }).catch(function(exception){
+        handlerException (res, exception);
+      });
+    }else{
+      return res.json(200, {success: false, data: null});
+    }
+  });
 }
 
 /*
@@ -129,7 +146,7 @@ function calculateTotalPayment(orderPrice, charges){
   if (!charges || charges.length == 0)
     return orderPrice;
 
-  // for special case - just one condition for all price range
+  // for specal case - just one condition for all price range
   if (charges.length == 1){
     var condition = charges[0];
 

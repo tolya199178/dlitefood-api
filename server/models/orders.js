@@ -49,6 +49,10 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
       defaultValue: 3
     },
+    delivery_fee: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     acceptance_time: {
       type: DataTypes.DATE,
       allowNull: false,
