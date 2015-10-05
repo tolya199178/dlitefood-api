@@ -41,12 +41,12 @@ module.exports = {
   paypal:{
     'mode': 'sandbox', //sandbox or live
     'endpoint'     : 'api.sandbox.paypal.com',
-    'client_id'    : 'ASfj4D8bWWrGBKOuOdoyES2uY6yyXalvKi1JoB0XvlczbsGvxBBLNZs5O0gZJWoVMOmgQUrKqMb5GsIM',
-    'client_secret': 'EPYecaOXZAixTw8HL9-WV4SlhFlqcJSdBYTRc7f6FDvuz2mqwBMpe4JiulcDsZqXuIyMmRucskNIqOig',
+    'client_id'    : 'Ad8-fTJ6gOTl-ynysgeuLvpUA_-Jjggl37uR83YPvWUeuVFMIfYi8GwOtsOnlddpwVsn0ZCm6i1TVE9h',//'ASfj4D8bWWrGBKOuOdoyES2uY6yyXalvKi1JoB0XvlczbsGvxBBLNZs5O0gZJWoVMOmgQUrKqMb5GsIM',
+    'client_secret': 'EKFPnntWwkLzsU4hcHDpZMN8Hi7eSg-QgYF18dflaeq7kRrrErdJFimAD6xNCvRuGlDTBAdHtCj78iZY',//'EPYecaOXZAixTw8HL9-WV4SlhFlqcJSdBYTRc7f6FDvuz2mqwBMpe4JiulcDsZqXuIyMmRucskNIqOig',
 
     "redirect_urls": {
       "return_url": "http://localhost:9000/#!/checkout/confirm", // https://dliteme.com/api/payments/confirm
-      "cancel_url": "http://localhost:9000/#!/checkout/cancel"   // https://dliteme.com/api/payments/cancel
+      "cancel_url": "http://localhost:9000/#!/checkout/info"   // https://dliteme.com/api/payments/cancel
     }
 
   },
@@ -62,6 +62,14 @@ module.exports = {
     userName: 'dlitedev',
     pwd: '5j|*#4}V[[8L',
     signinLink: 'https://071248920477.signin.aws.amazon.com/console'
+  },
+
+  // Braintree
+
+  braintree: {
+    merchantId: 'nh9m54ms22rfpw8c',
+    publicKey: 'y7dscxmdzwkvc8hy',
+    privateKey: 'a960690fd9f48aeed0bd855dc5106ef3'
   }
 
 };

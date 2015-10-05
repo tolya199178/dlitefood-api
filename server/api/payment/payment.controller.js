@@ -1,37 +1,60 @@
 'use strict';
 
 
-var models          = require('../../models'),
+var models        = require('../../models'),
   passport        = require('passport' ),
   config          = require('../../config/environment' ),
   _               = require('lodash' ),
   utils           = require('../../components/utils'),
   crypto          = require('crypto'),
-    paypal = require( 'paypal-rest-sdk' ),
-    redis  = require( "redis" );
+  braintree       = require('braintree' ),
+  paypal          = require( 'paypal-rest-sdk' ),
+  redis           = require( "redis" );
 
 var ORDER_STATUS = {
   ASSIGNED: 1,
   COMPLETED: 2,
   PENDING: 3
-}
+};
+
+// Braintree config details
+
+var gateway = braintree.connect({
+  environment: braintree.Environment.Sandbox,
+  merchantId: config.braintree.merchantId,
+  publicKey: config.braintree.publicKey,
+  privateKey: config.braintree.privateKey
+});
+
+/**
+ * Creates a new payment. Both PayPal & Braintree payment
+ *
+ * @param req
+ * @param res
+ */
 exports.create = function(req, res) {
+
+  // PayPal config details
   paypal.configure(config.paypal);
+
   var client = redis.createClient( config.redis.port, config.redis.host );
   var newOrder = req.body;
-
-  if( !newOrder.customer_id ||
+  console.log(newOrder);
+  // We need to ensure we have the required field.
+  if(!newOrder.customer_id ||
     !newOrder.merchant_id ||
     !newOrder.delivery_type ||
     !newOrder.payment_type ||
     !newOrder.details ||
     !newOrder.note ||
-    !newOrder.email
+    !newOrder.customer.email ||
+    !newOrder.customer.name
   ){
     return utils.handlerUserInputException(res);
   }
   if(newOrder.payment_type == "paypal"){
-    // get the merchant info and
+
+    // get the merchant info.
     models.Merchants
       .findOne({
         where: {
@@ -64,7 +87,6 @@ exports.create = function(req, res) {
             'quantity': value.quantity
           } )
         } );
-        console.log(items);
 
         var create_payment_json = {
           "intent": "sale",
@@ -90,21 +112,56 @@ exports.create = function(req, res) {
         };
         paypal.payment.create(create_payment_json, function (error, payment) {
           if (error) {
-            console.log( error );
-            throw error;
+            //throw error;
+            return res.send(error);
+
           } else {
             client.hmset( payment.id, newOrder );
-            client.expire( payment.id, 600 );
-            return res.json( 200, {success: true, data: payment.links} );
+            client.expire( payment.whyid, 600 );
+            return res.envelope(payment.links);
           }
         });
       })
       .catch(function(ex){
         utils.handlerSequelizeException(res, ex);
       });
-  }
-}
+  } else if(newOrder.payment_type = 'credit_card' && newOrder.payment_method_nonce) {
+    //newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
+    console.log(newOrder.total);
+    gateway.transaction.sale({
+      amount: newOrder.orderPrice,
+      paymentMethodNonce: newOrder.payment_method_nonce,
+      customer: {
+        firstName: newOrder.customer.name[0],
+        lastName: newOrder.customer.name[1],
+        phone: newOrder.customer.phone
+      }  ,
+        billing: {
+          firstName: newOrder.customer.name[0],
+          lastName: newOrder.customer.name[1],
+          phone: newOrder.customer.phone
+        }
+    }, ( function (err, result) {
+      if(err) {
+        console.log(err);
+        return res.send(err);
+      }
+      console.log(result);
+      return result;
+    })
+    );
+      return res.envelope(newOrder.payment_method_nonce);
 
+  }
+};
+
+/**
+ * When payment is successful, this function get called.
+ * A new order is created in db on order confirmed.
+ * // TODO: Add broadcast method to mobile app & management area
+ * @param req
+ * @param res
+ */
 exports.confirm = function (req, res) {
   var paymentid = req.body.paymentId;
   var token  = req.body.token;
@@ -125,10 +182,10 @@ exports.confirm = function (req, res) {
   } );
 }
 
-/*
+/**
  calculate total payment base on orderPrice and charges of merchant_type
  @param {orderPrice} original price of order
- @param {changes} additional charge of merchant_type
+ @param changes} additional charge of merchant_type
  @result {}
  */
 function calculateTotalPayment(orderPrice, charges){
@@ -166,6 +223,23 @@ function calculateTotalPayment(orderPrice, charges){
 
 }
 
+/**
+ * Obtain client token from braintree
+ * @param req
+ * @param res
+ */
+exports.getToken = function (req, res) {
+  gateway.clientToken.generate({}, function (err, response) {
+    return res.envelope(response.clientToken);
+  });
+};
+
+
+/**
+ * Exception handler
+ * @param res
+ * @param ex
+ */
 function handlerException (res, ex){
   res.json(500, {success: false, data: ex.toString(), msg: 'Exception thrown !!!'});
 }
