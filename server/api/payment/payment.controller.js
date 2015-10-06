@@ -39,6 +39,7 @@ exports.create = function(req, res) {
 
   var client = redis.createClient( config.redis.port, config.redis.host );
   var newOrder = req.body;
+
   console.log(newOrder);
   // We need to ensure we have the required field.
   if(!newOrder.customer_id ||
@@ -52,84 +53,87 @@ exports.create = function(req, res) {
   ){
     return utils.handlerUserInputException(res);
   }
+
+  // get the merchant info.
+      var merchant;
+      try {
+        console.log('ID: ' +newOrder.merchant_id);
+        merchant = getMerchantInfo(newOrder.merchant_id);
+        console.log(merchant);
+      } catch (exception) {
+        console.log('exception : ', exception);
+      }
+      console.log('merchant::::', merchant);
+      newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
+      var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+      newOrder.transaction_id = utils.generateTransactionId(ip);
+      newOrder.status = ORDER_STATUS.PENDING;
+
+      var carts = JSON.parse( newOrder.details );
+      var items = [];
+      _.each( carts, function (value) {
+        items.push( {
+          'name'    : value.name,
+          'sku'     : 'item',
+          'price'   : value.price,
+          'currency': "GBP",
+          'quantity': value.quantity
+        } )
+      } );
+
+
+
+  // Check if payment type == PayPal
+
   if(newOrder.payment_type == "paypal"){
 
-    // get the merchant info.
-    models.Merchants
-      .findOne({
-        where: {
-          id: newOrder.merchant_id
+    var create_payment_json = {
+      "intent": "sale",
+      "payer": {
+        "payment_method": "paypal"
+      },
+      "redirect_urls": {
+        "return_url": config.paypal.redirect_urls.return_url, //will be replaced
+        "cancel_url": config.paypal.redirect_urls.cancel_url //will be replaced
+      },
+      "transactions": [ {
+        "amount": {
+          "currency": "GBP",
+          "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100,
+          //"details": {
+          //  "subtotal": "", // TODO: Get subtotal from local storage in front end
+          //  "tax": newOrder.total * 0.20,
+          // "handling_fee": newOrder.delivery_fee
+          // }
         },
-        include: [
-          {
-            model: models.Merchant_Groups,
-            attributes: ['name', 'charges']
-          }
-        ]
-      })
-      .then(function(merchant){
-        if( !merchant ) utils.handlerNotFoundException( res );
-        newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
+        "description": "This is the payment description."
+      } ]
+    };
+    console.log(create_payment_json.transactions);
+    paypal.payment.create(create_payment_json, function (error, payment) {
+      if (error) {
+        //throw error;
+        console.log(error);
+        return res.send(error);
 
+      } else {
+        // Insert order into DB
+        //console.log(payment);
+        client.hmset( payment.id, newOrder );
+        client.expire( payment.whyid, 600 );
+        return res.envelope(payment.links);
+      }
+    });
 
-        var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        newOrder.transaction_id = utils.generateTransactionId(ip);
-        newOrder.status = ORDER_STATUS.PENDING;
+   // If not, must be credit_card
+   // We need to ensure payment_method_nonce is obtained
 
-        var carts = JSON.parse( newOrder.details );
-        var items = [];
-        _.each( carts, function (value) {
-          items.push( {
-            'name'    : value.name,
-            'sku'     : 'item',
-            'price'   : value.price,
-            'currency': "GBP",
-            'quantity': value.quantity
-          } )
-        } );
-
-        var create_payment_json = {
-          "intent": "sale",
-          "payer": {
-            "payment_method": "paypal"
-          },
-          "redirect_urls": {
-            "return_url": config.paypal.redirect_urls.return_url, //will be replaced
-            "cancel_url": config.paypal.redirect_urls.cancel_url //will be replaced
-          },
-          "transactions": [ {
-            "amount": {
-              "currency": "GBP",
-              "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100,
-              //"details": {
-              //  "subtotal": "", // TODO: Get subtotal from local storage in front end
-              //  "tax": newOrder.total * 0.20,
-               // "handling_fee": newOrder.delivery_fee
-             // }
-            },
-            "description": "This is the payment description."
-          } ]
-        };
-        paypal.payment.create(create_payment_json, function (error, payment) {
-          if (error) {
-            //throw error;
-            return res.send(error);
-
-          } else {
-            client.hmset( payment.id, newOrder );
-            client.expire( payment.whyid, 600 );
-            return res.envelope(payment.links);
-          }
-        });
-      })
-      .catch(function(ex){
-        utils.handlerSequelizeException(res, ex);
-      });
   } else if(newOrder.payment_type = 'credit_card' && newOrder.payment_method_nonce) {
-    //newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges ) ).toString();
-    console.log(newOrder.total);
+    //newOrder.total = calculateTotalPayment( newOrder.orderPrice, JSON.parse( merchant.Merchant_Group.charges )
+    // ).toString();
     gateway.transaction.sale({
-      amount: newOrder.orderPrice,
+      amount: newOrder.total,
       paymentMethodNonce: newOrder.payment_method_nonce,
       customer: {
         firstName: newOrder.customer.name[0],
@@ -223,6 +227,30 @@ function calculateTotalPayment(orderPrice, charges){
 
 }
 
+
+function getMerchantInfo(merchantId) {
+  if( !merchantId ) {
+    console.log('here, merchant id :'+ merchantId);
+    return 'merchant ID not provided';
+  }
+
+  console.log('hereeee', merchantId);
+  // get the merchant info.
+  models.Merchants.findOne( {
+      where  : {
+        id: merchantId
+      },
+      include: [
+        {
+          model     : models.Merchant_Groups,
+          attributes: [ 'name', 'charges' ]
+        }
+      ]
+    } ).then( function (merchant) {
+      console.log(merchant);
+      return merchant;
+  } );
+}
 /**
  * Obtain client token from braintree
  * @param req

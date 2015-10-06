@@ -60,7 +60,7 @@ exports.index = function(req, res) {
     })
     .catch(function(exception){
       handlerException (res, exception);
-    });;
+    });
   } catch (exception){
     handlerException (res, exception);
   }
