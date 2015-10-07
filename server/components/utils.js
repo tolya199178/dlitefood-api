@@ -331,7 +331,7 @@ Utils.handleSuccess =  function(res, data){
 /*
   Utils to send mail
   @param {string[]} emails
-  @result {Object} success/failse
+  @result {Object} success/failure
 */
 Utils.sendMail = function(data, callback){
   // load aws config - TODO need fix config.json

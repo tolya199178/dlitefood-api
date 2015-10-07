@@ -40,7 +40,6 @@ exports.create = function(req, res) {
   var client = redis.createClient( config.redis.port, config.redis.host );
   var newOrder = req.body;
 
-  console.log(newOrder);
   // We need to ensure we have the required field.
   if(!newOrder.customer_id ||
     !newOrder.merchant_id ||
@@ -48,6 +47,7 @@ exports.create = function(req, res) {
     !newOrder.payment_type ||
     !newOrder.details ||
     !newOrder.note ||
+    !newOrder.delivery_fee ||
     !newOrder.customer.email ||
     !newOrder.customer.name
   ){
@@ -86,7 +86,7 @@ exports.create = function(req, res) {
             'quantity': value.quantity
           } )
         } );
-
+        console.log(Math.floor(newOrder.total));
         var create_payment_json = {
           "intent": "sale",
           "payer": {
@@ -99,7 +99,7 @@ exports.create = function(req, res) {
           "transactions": [ {
             "amount": {
               "currency": "GBP",
-              "total": Math.floor( parseFloat( newOrder.total * 100 ) ) / 100,
+              "total": Math.floor(  newOrder.total )
               //"details": {
               //  "subtotal": "", // TODO: Get subtotal from local storage in front end
               //  "tax": newOrder.total * 0.20,
@@ -116,7 +116,7 @@ exports.create = function(req, res) {
           } else {
             client.hmset( payment.id, newOrder );
             client.expire( payment.whyid, 600 );
-            console.log(payment);
+            //console.log(payment);
             return res.envelope(payment.links);
           }
         });
@@ -147,7 +147,8 @@ exports.create = function(req, res) {
         var ip                  = req.headers[ 'x-forwarded-for' ] || req.connection.remoteAddress;
         newOrder.transaction_id = utils.generateTransactionId( ip );
         newOrder.status         = ORDER_STATUS.PENDING;
-        console.log(newOrder.customer.name.substring());
+        console.log(newOrder.customer.name.substring(newOrder.customer.name.indexOf(' ')));
+        console.log(newOrder.customer.name.indexOf(' '));
         gateway.transaction.sale( {
             amount            : Math.floor(newOrder.total),
             paymentMethodNonce: newOrder.payment_method_nonce,
@@ -189,10 +190,11 @@ exports.confirm = function (req, res) {
   client.hgetall( paymentid, function (err, newOrder) {
     // create a new order
     if( newOrder ) {
+      //console.log(newOrder);
       newOrder.transaction_id = paymentid;
       models.Orders.create( newOrder ).then( function (order, error) {
         if( !order ) utils.handlerServerException( res, error );
-        return res.json( 200, {success: true, data: newOrder} );
+        return res.envelope(newOrder);
       } ).catch( function (exception) {
         handlerException( res, exception );
       } );

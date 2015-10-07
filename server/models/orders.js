@@ -56,6 +56,7 @@ module.exports = function(sequelize, DataTypes) {
     acceptance_time: {
       type: DataTypes.DATE,
       allowNull: false,
+      defaultValue: DataTypes.NOW
     }
 
   }, {

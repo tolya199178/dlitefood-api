@@ -56,15 +56,15 @@ module.exports = function(sequelize, DataTypes) {
     },
     co_total_employees: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: true
     },
     co_pay_method: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: true
     },
     user_id: {
       type: DataTypes.INTEGER(11),
-      allowNull: false,
+      allowNull: false
     }
 
   }, {
