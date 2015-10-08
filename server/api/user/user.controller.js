@@ -13,8 +13,7 @@ var ROLES = {
   STAFF: 3,
   MERCHANT: 4,
   CUSTOMER: 5
-}
-
+};
 
 /**
  * Change a users password
@@ -75,7 +74,7 @@ exports.changePassword = function(req, res, next) {
   catch (exception){
     res.json(500, {success: false, data: exception, msg: 'Exception thrown !!!'});
   }
-  
+
 };
 
 
@@ -146,6 +145,6 @@ exports.me = function(req, res, next) {
   catch (exception){
     res.json(500, {success: false, data: exception, msg: 'Exception thrown !!!'});
   }
-  
+
 };
 

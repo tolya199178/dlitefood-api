@@ -11,15 +11,19 @@ module.exports = function(sequelize, DataTypes) {
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
     screen_name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
     address: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true
     },
     address1: {
       type: DataTypes.TEXT,

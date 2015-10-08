@@ -38,10 +38,11 @@ module.exports = function(sequelize, DataTypes) {
     },
     hashedpassword: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
     phoneno: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull: false
     },
     status: {
       type: DataTypes.INTEGER(1),
@@ -110,7 +111,7 @@ module.exports = function(sequelize, DataTypes) {
           // no exist - can create user info
           this.create(userInfo)
           .then(function(user) {
-            if (!user) callback({ sucess: false, msg: 'Unknow issue - Can\'t create user ' });
+            if (!user) callback({ sucess: false, msg: 'Unknown issue - Can\'t create user ' });
             callback({success: true, user: user});
           })
           .catch(function(exception){

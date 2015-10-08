@@ -56,12 +56,14 @@ var USER_STATUS = {
 */
 
 exports.create = function(req, res) {
+  console.log('inside create function');
   var customer = req.body;
 
   if (!customer.screen_name ||
     !customer.email ||
     !customer.postcode ||
     !customer.password ||
+    !customer.phoneno ||
     !customer.name
   ){
     return utils.handlerUserInputException(res);
@@ -90,11 +92,11 @@ exports.create = function(req, res) {
       }
 
       customer.user_id = result.user.id;
-      
+
       // create customer with user info
       models.Customers.create(customer).then(function(result){
         if (!result) return utils.handlerNotFoundException(res);
-
+        console.log(result);
         //send email to verify email with above token
         utils.sendMail({
           emails: [customer.email],
@@ -103,7 +105,7 @@ exports.create = function(req, res) {
         }, function(res){
           console.log(res);
         });
-        
+
         //return result
         utils.handleSuccess(res, result);
       })
